@@ -38,7 +38,7 @@ async function get(
         {
             roomId: message.agentId,
             count: 5,
-            match_threshold: 0.1,
+            match_threshold: 0.2,
         }
     );
 

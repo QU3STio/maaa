@@ -609,6 +609,8 @@ export class MessageManager {
     ): Promise<Content> {
         const { userId, roomId } = message;
 
+        elizaLogger.info("generate post prompt:\n" + context);
+
         const response = await generateMessageResponse({
             runtime: this.runtime,
             context,
