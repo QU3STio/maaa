@@ -399,15 +399,12 @@ export class TwitterPostClient {
                 `${this.runtime.character.name}'s Home Timeline`
             );
 
-            // First select your random topics - do the shuffle and slice ONCE
             const selectedTopics = this.runtime.character.topics
                 .sort(() => 0.5 - Math.random())
-                .slice(0, 5);
+                .slice(0, 3);
 
-            // Simple comma format for content.text
             const simpleTopics = selectedTopics.join(", ");
 
-            // Prepare context and make Claude API call
             const state = await this.runtime.composeState(
                 {
                     userId: this.runtime.agentId,
