@@ -114,7 +114,6 @@ export class MemoryManager implements IMemoryManager {
             levenshtein_score: number;
         }[]
     > {
-        elizaLogger.info("Getting cached embeddings for content:", content);
         return await this.runtime.databaseAdapter.getCachedEmbeddings({
             query_table_name: this.tableName,
             query_threshold: 2,

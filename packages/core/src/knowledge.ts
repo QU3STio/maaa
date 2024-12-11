@@ -20,7 +20,7 @@ async function get(
     }
 
     const processed = preprocess(message.content.text);
-    elizaLogger.debug("Knowledge query:", {
+    elizaLogger.info("Knowledge query:", {
         original: message.content.text,
         processed,
         length: processed?.length,
@@ -37,7 +37,7 @@ async function get(
         embedding,
         {
             roomId: message.agentId,
-            count: 5,
+            count: 10,
             match_threshold: 0.2,
         }
     );

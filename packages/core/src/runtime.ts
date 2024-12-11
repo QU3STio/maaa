@@ -986,6 +986,13 @@ Text: ${attachment.text}
                           )
                       ]
                     : "",
+            adjectives: 
+                this.character.adjectives && this.character.adjectives.length > 0
+                    ? this.character.adjectives
+                          .sort(() => 0.5 - Math.random())
+                          .slice(0, 5)  // Get 5 random adjectives
+                          .join(", ")
+                    : "",
             knowledge: formattedKnowledge,
             knowledgeData: knowledegeData,
             // Recent interactions between the sender and receiver, formatted as messages
@@ -1006,15 +1013,12 @@ Text: ${attachment.text}
             topics:
                 this.character.topics && this.character.topics.length > 0
                     ? `${this.character.name} is interested in ` +
-                      this.character.topics
-                          .sort(() => 0.5 - Math.random())
-                          .slice(0, 5)
-                          .map((topic, index) => {
-                              if (index === this.character.topics.length - 2) {
+                      ((additionalKeys.selectedTopics as string[]) || this.character.topics.sort(() => 0.5 - Math.random()).slice(0, 5))
+                          .map((topic, index, array) => {
+                              if (index === array.length - 2) {
                                   return topic + " and ";
                               }
-                              // if last topic, don't add a comma
-                              if (index === this.character.topics.length - 1) {
+                              if (index === array.length - 1) {
                                   return topic;
                               }
                               return topic + ", ";
