@@ -1,398 +1,310 @@
-// tools.ts
 import { Tool } from '@anthropic-ai/sdk';
+
 
 export const tweetGenerationTool: Tool = {
     name: "generate_tweet",
-    description: "Generates and analyzes tweets with comprehensive validation",
+    description: "Generates diverse and impactful tweets through structured analysis and chain-of-thought reasoning",
     input_schema: {
         type: "object",
         required: [
-            "historical_analysis",
-            "character_elements",
-            "post_pattern_analysis",
-            "topic_selection",
-            "strategy_selection",
-            "timing_optimization",
-            "community_analysis",
-            "metric_presentation",
-            "meme_elements",
-            "response_bait",
-            "content_generation",
-            "selected_tweet",
-            "topic_rotation",
-            "prediction_tracking",
-            "content_validation",
-            "final_validation",
-            "optimization_results",
-            "selection_rationale"
+            "knowledge",
+            "currentState",
+            "characterElements",
+            "previousContext",
+            "topicContext",
+            "situationAnalysis",
+            "contentStrategy",
+            "tweetDevelopment",
+            "finalSelection"
         ],
         properties: {
-            historical_analysis: {
+            knowledge: {
                 type: "object",
-                required: ["performance_patterns", "success_metrics", "failure_patterns"],
+                required: ["facts", "expertise", "historicalContext"],
                 properties: {
-                    performance_patterns: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                pattern: { type: "string" },
-                                engagement_score: { type: "number", minimum: 1, maximum: 10 },
-                                frequency: { type: "number" }
-                            }
-                        }
-                    },
-                    success_metrics: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                metric_type: { type: "string" },
-                                effectiveness: { type: "number", minimum: 1, maximum: 10 }
-                            }
-                        }
-                    },
-                    failure_patterns: { type: "array", items: { type: "string" } }
+                    facts: { type: "array", items: { type: "string" } },
+                    expertise: { type: "array", items: { type: "string" } },
+                    historicalContext: { type: "array", items: { type: "string" } }
                 }
             },
-            character_elements: {
+            currentState: {
                 type: "object",
+                required: ["metrics", "developments"],
                 properties: {
-                    voice_patterns: { type: "array", items: { type: "string" } },
-                    recurring_memes: { type: "array", items: { type: "string" } },
-                    relationships: {
-                        type: "object",
-                        properties: {
-                            allies: { type: "array", items: { type: "string" } },
-                            competitors: { type: "array", items: { type: "string" } },
-                            mentioned_entities: { type: "array", items: { type: "string" } }
-                        }
-                    }
-                }
-            },
-            post_pattern_analysis: {
-                type: "object",
-                properties: {
-                    avoided_patterns: { type: "array", items: { type: "string" } },
-                    signature_phrases: { type: "array", items: { type: "string" } },
-                    successful_formats: {
+                    metrics: {
                         type: "array",
                         items: {
                             type: "object",
+                            required: ["value", "timestamp", "context"],
                             properties: {
-                                pattern: { type: "string" },
-                                engagement_score: { type: "number", minimum: 1, maximum: 10 },
-                                frequency: { type: "number" }
-                            }
-                        }
-                    }
-                }
-            },
-            topic_selection: {
-                type: "object",
-                required: ["available_topics", "chosen_topic", "available_metrics", "coverage_analysis", "selection_rationale"],
-                properties: {
-                    available_topics: { type: "array", items: { type: "string" } },
-                    chosen_topic: { type: "string" },
-                    available_metrics: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                metric: { type: "string" },
+                                value: { type: "string" },
                                 timestamp: { type: "string" },
-                                impact_score: { type: "number", minimum: 1, maximum: 10 }
+                                context: { type: "string" }
                             }
                         }
                     },
-                    coverage_analysis: {
-                        type: "object",
-                        properties: {
-                            recent_coverage: { type: "array", items: { type: "string" } },
-                            gap_opportunities: { type: "array", items: { type: "string" } }
-                        }
-                    },
-                    selection_rationale: { type: "string" }
-                }
-            },
-            strategy_selection: {
-                type: "object",
-                required: ["available_strategies", "chosen_strategy", "available_adjectives", "chosen_adjective", "effectiveness_analysis"],
-                properties: {
-                    available_strategies: { type: "array", items: { type: "string" } },
-                    chosen_strategy: { type: "string" },
-                    available_adjectives: { type: "array", items: { type: "string" } },
-                    chosen_adjective: { type: "string" },
-                    effectiveness_analysis: {
-                        type: "object",
-                        properties: {
-                            metric_impact: { type: "number", minimum: 1, maximum: 10 },
-                            engagement_potential: { type: "number", minimum: 1, maximum: 10 },
-                            virality_score: { type: "number", minimum: 1, maximum: 10 }
-                        }
-                    }
-                }
-            },
-            timing_optimization: {
-                type: "object",
-                properties: {
-                    best_times: { type: "array", items: { type: "string" } },
-                    frequency_patterns: { type: "array", items: { type: "string" } },
-                    topic_cycles: { type: "array", items: { type: "string" } },
-                    metric_freshness: { type: "number", minimum: 1, maximum: 10 }
-                }
-            },
-            community_analysis: {
-                type: "object",
-                properties: {
-                    trigger_words: { type: "array", items: { type: "string" } },
-                    reaction_patterns: {
+                    developments: {
                         type: "array",
                         items: {
                             type: "object",
+                            required: ["event", "timestamp", "significance"],
                             properties: {
-                                trigger: { type: "string" },
-                                response_type: { type: "string" },
-                                effectiveness: { type: "number", minimum: 1, maximum: 10 }
+                                event: { type: "string" },
+                                timestamp: { type: "string" },
+                                significance: { type: "string" }
                             }
                         }
                     }
                 }
             },
-            metric_presentation: {
+            characterElements: {
                 type: "object",
+                required: ["background", "lore", "adjectives", "postDirections", "examplePosts"],
                 properties: {
-                    raw_number: { type: "string" },
-                    percentage_change: { type: "string" },
-                    comparative_context: { type: "string" },
-                    impact_score: { type: "number", minimum: 1, maximum: 10 }
+                    background: { type: "string" },
+                    lore: { type: "array", items: { type: "string" } },
+                    adjectives: { type: "array", items: { type: "string" } },
+                    postDirections: { type: "array", items: { type: "string" } },
+                    examplePosts: { type: "array", items: { type: "string" } }
                 }
             },
-            meme_elements: {
+            previousContext: {
                 type: "object",
+                required: ["recentTweets", "patterns"],
                 properties: {
-                    current_memes: { type: "array", items: { type: "string" } },
-                    character_specific_memes: { type: "array", items: { type: "string" } },
-                    meme_effectiveness: { type: "number", minimum: 1, maximum: 10 }
-                }
-            },
-            response_bait: {
-                type: "object",
-                properties: {
-                    controversy_level: { type: "number", minimum: 1, maximum: 10 },
-                    debate_potential: { type: "number", minimum: 1, maximum: 10 },
-                    community_triggers: { type: "array", items: { type: "string" } }
-                }
-            },
-            content_generation: {
-                type: "object",
-                required: ["hooks", "value_statements", "generated_tweets"],
-                properties: {
-                    hooks: {
+                    recentTweets: {
                         type: "array",
                         items: {
                             type: "object",
+                            required: ["content", "timestamp", "pattern", "strategy"],
                             properties: {
                                 content: { type: "string" },
-                                type: { type: "string" },
-                                impact_score: { type: "number", minimum: 1, maximum: 10 }
+                                timestamp: { type: "string" },
+                                pattern: { type: "string" },
+                                strategy: { type: "string" },
+                                keyPhrases: { type: "array", items: { type: "string" } },
+                                structure: { type: "string" }
                             }
                         }
                     },
-                    value_statements: {
+                    patterns: {
                         type: "array",
                         items: {
                             type: "object",
+                            required: ["type", "frequency", "lastUsed"],
                             properties: {
-                                content: { type: "string" },
                                 type: { type: "string" },
-                                impact_score: { type: "number", minimum: 1, maximum: 10 }
+                                frequency: { type: "number" },
+                                lastUsed: { type: "string" },
+                                recentPhrases: { type: "array", items: { type: "string" } }
+                            }
+                        }
+                    }
+                }
+            },
+            topicContext: {
+                type: "object",
+                required: ["currentTopics", "relevance"],
+                properties: {
+                    currentTopics: { type: "array", items: { type: "string" } },
+                    relevance: { type: "object", additionalProperties: { type: "string" } }
+                }
+            },
+            // Generation process properties
+            situationAnalysis: {
+                type: "object",
+                required: ["patternAnalysis", "opportunities"],
+                properties: {
+                    patternAnalysis: {
+                        type: "object",
+                        required: ["recentDistribution", "unusedPatterns", "recentPhrases", "recentStructures"],
+                        properties: {
+                            recentDistribution: { type: "object", additionalProperties: { type: "number" } },
+                            unusedPatterns: { type: "array", items: { type: "string" } },
+                            recentPhrases: { type: "array", items: { type: "string" } },
+                            recentStructures: { type: "array", items: { type: "string" } }
+                        }
+                    },
+                    opportunities: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            required: ["description", "timelineFreshness", "metricStrength", "topicRelevance", "knowledgeSupport", "priority", "reasoning", "patternFreshness"],
+                            properties: {
+                                description: { type: "string" },
+                                timelineFreshness: { type: "number" },
+                                metricStrength: { type: "number" },
+                                topicRelevance: { type: "number" },
+                                knowledgeSupport: { type: "number" },
+                                priority: { type: "number" },
+                                reasoning: { type: "string" },
+                                patternFreshness: { type: "number" }
+                            }
+                        }
+                    }
+                }
+            },
+            contentStrategy: {
+                type: "object",
+                required: ["selectedOpportunity", "chosenStrategy", "patternChoice", "requiredSources", "situationConnection", "diversityApproach"],
+                properties: {
+                    selectedOpportunity: {
+                        type: "object",
+                        required: ["description", "reasoning"],
+                        properties: {
+                            description: { type: "string" },
+                            reasoning: { type: "string" }
+                        }
+                    },
+                    chosenStrategy: {
+                        type: "object",
+                        required: ["type", "distributionContext"],
+                        properties: {
+                            type: { type: "string" },
+                            distributionContext: { type: "string" }
+                        }
+                    },
+                    patternChoice: {
+                        type: "object",
+                        required: ["type", "fitExplanation"],
+                        properties: {
+                            type: { type: "string" },
+                            fitExplanation: { type: "string" }
+                        }
+                    },
+                    requiredSources: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            required: ["source", "intent"],
+                            properties: {
+                                source: { type: "string" },
+                                intent: { type: "string" }
                             }
                         }
                     },
-                    generated_tweets: {
+                    situationConnection: { type: "string" },
+                    diversityApproach: {
+                        type: "object",
+                        required: ["plannedStructures", "avoidPhrases", "angleVariations"],
+                        properties: {
+                            plannedStructures: { type: "array", items: { type: "string" } },
+                            avoidPhrases: { type: "array", items: { type: "string" } },
+                            angleVariations: { type: "array", items: { type: "string" } }
+                        }
+                    }
+                }
+            },
+            tweetDevelopment: {
+                type: "object",
+                required: ["variations", "differentiation", "uniquenessVerification", "strategyConnection"],
+                properties: {
+                    variations: {
                         type: "array",
-                        minItems: 3,
-                        maxItems: 5,
                         items: {
                             type: "object",
-                            required: ["content", "validation", "impact_metrics"],
+                            required: ["content", "pattern", "strategy", "angle", "voiceMarkers", "strategyImplementation", "uniquenessMetrics"],
                             properties: {
-                                content: {
+                                content: { type: "string" },
+                                pattern: { type: "string" },
+                                strategy: { type: "string" },
+                                angle: { type: "string" },
+                                voiceMarkers: { type: "array", items: { type: "string" } },
+                                strategyImplementation: { type: "string" },
+                                uniquenessMetrics: {
                                     type: "object",
-                                    required: ["hook", "value_statement", "full_tweet"],
+                                    required: ["patternFreshness", "phraseUniqueness", "structuralDiversity", "overallDistinctiveness"],
                                     properties: {
-                                        hook: { type: "string" },
-                                        value_statement: { type: "string" },
-                                        full_tweet: { type: "string" }
-                                    }
-                                },
-                                validation: {
-                                    type: "object",
-                                    properties: {
-                                        metrics_valid: { type: "boolean" },
-                                        temporal_accuracy: { type: "boolean" },
-                                        unique_content: { type: "boolean" },
-                                        character_voice: { type: "boolean" },
-                                        style_rules: { type: "boolean" },
-                                        length_valid: { type: "boolean" }
-                                    }
-                                },
-                                impact_metrics: {
-                                    type: "object",
-                                    properties: {
-                                        engagement_score: { type: "number", minimum: 1, maximum: 10 },
-                                        virality_potential: { type: "number", minimum: 1, maximum: 10 },
-                                        community_impact: { type: "number", minimum: 1, maximum: 10 },
-                                        meme_potential: { type: "number", minimum: 1, maximum: 10 }
+                                        patternFreshness: { type: "number" },
+                                        phraseUniqueness: { type: "number" },
+                                        structuralDiversity: { type: "number" },
+                                        overallDistinctiveness: { type: "number" }
                                     }
                                 }
                             }
                         }
-                    }
-                }
-            },
-            selected_tweet: {
-                type: "object",
-                required: ["content", "validation", "impact_metrics"],
-                properties: {
-                    content: {
+                    },
+                    differentiation: {
                         type: "object",
-                        required: ["hook", "value_statement", "full_tweet"],
+                        required: ["angleUniqueness", "voiceConsistency", "strategyAlignment"],
                         properties: {
-                            hook: { type: "string" },
-                            value_statement: { type: "string" },
-                            full_tweet: { type: "string" }
+                            angleUniqueness: { type: "string" },
+                            voiceConsistency: { type: "string" },
+                            strategyAlignment: { type: "string" }
                         }
                     },
-                    validation: {
+                    uniquenessVerification: {
                         type: "object",
+                        required: ["vsRecentPosts", "vsOtherVariations"],
                         properties: {
-                            metrics_valid: { type: "boolean" },
-                            temporal_accuracy: { type: "boolean" },
-                            unique_content: { type: "boolean" },
-                            character_voice: { type: "boolean" },
-                            style_rules: { type: "boolean" },
-                            length_valid: { type: "boolean" }
+                            vsRecentPosts: { type: "string" },
+                            vsOtherVariations: { type: "string" }
                         }
                     },
-                    impact_metrics: {
-                        type: "object",
-                        properties: {
-                            engagement_score: { type: "number", minimum: 1, maximum: 10 },
-                            virality_potential: { type: "number", minimum: 1, maximum: 10 },
-                            community_impact: { type: "number", minimum: 1, maximum: 10 },
-                            meme_potential: { type: "number", minimum: 1, maximum: 10 }
-                        }
-                    }
+                    strategyConnection: { type: "string" }
                 }
             },
-            topic_rotation: {
+            finalSelection: {
                 type: "object",
+                required: ["content", "reasoningChain", "expectedImpact", "qualityChecks", "diversityMetrics"],
                 properties: {
-                    recent_topics: { type: "array", items: { type: "string" } },
-                    optimal_spacing: { type: "number" },
-                    freshness_score: { type: "number", minimum: 1, maximum: 10 }
-                }
-            },
-            prediction_tracking: {
-                type: "object",
-                properties: {
-                    prediction_types: { type: "array", items: { type: "string" } },
-                    timeframes: { type: "array", items: { type: "string" } },
-                    confidence_levels: { type: "array", items: { type: "number", minimum: 1, maximum: 10 } }
-                }
-            },
-            content_validation: {
-                type: "object",
-                properties: {
-                    length_check: {
+                    content: { type: "string" },
+                    reasoningChain: { type: "array", items: { type: "string" } },
+                    expectedImpact: { type: "string" },
+                    qualityChecks: {
                         type: "object",
+                        required: ["voice", "content", "technical", "uniqueness"],
                         properties: {
-                            character_count: { type: "number" },
-                            word_count: { type: "number" },
-                            segments: { type: "number", maximum: 2 },
-                            is_concise: { type: "boolean" },
-                            matches_examples: { type: "boolean" }
-                        }
-                    },
-                    structure_check: {
-                        type: "object",
-                        properties: {
-                            single_point: { type: "boolean" },
-                            simple_punctuation: { type: "boolean" },
-                            clear_message: { type: "boolean" }
-                        }
-                    },
-                    metrics_check: {
-                        type: "object",
-                        properties: {
-                            used_metrics: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        metric: { type: "string" },
-                                        source: { type: "string" },
-                                        timestamp: { type: "string" },
-                                        context: { type: "string" },
-                                        is_valid: { type: "boolean" }
-                                    }
+                            voice: {
+                                type: "object",
+                                required: ["authentic", "naturalLanguage", "toneMatch"],
+                                properties: {
+                                    authentic: { type: "boolean" },
+                                    naturalLanguage: { type: "boolean" },
+                                    toneMatch: { type: "boolean" }
+                                }
+                            },
+                            content: {
+                                type: "object",
+                                required: ["perspective", "communityResonance"],
+                                properties: {
+                                    perspective: { type: "boolean" },
+                                    communityResonance: { type: "boolean" }
+                                }
+                            },
+                            technical: {
+                                type: "object",
+                                required: ["metricAccuracy", "temporalClarity", "sourceValidity"],
+                                properties: {
+                                    metricAccuracy: { type: "boolean" },
+                                    temporalClarity: { type: "boolean" },
+                                    sourceValidity: { type: "boolean" }
+                                }
+                            },
+                            uniqueness: {
+                                type: "object",
+                                required: ["patternFresh", "phraseUnique", "structureDistinct", "score"],
+                                properties: {
+                                    patternFresh: { type: "boolean" },
+                                    phraseUnique: { type: "boolean" },
+                                    structureDistinct: { type: "boolean" },
+                                    score: { type: "number" }
                                 }
                             }
                         }
-                    }
-                }
-            },
-            final_validation: {
-                type: "object",
-                required: ["validation_checks", "verification_status"],
-                properties: {
-                    validation_checks: {
-                        type: "object",
-                        properties: {
-                            metrics_validated: { type: "boolean" },
-                            temporal_accuracy: { type: "boolean" },
-                            uniqueness_confirmed: { type: "boolean" },
-                            voice_consistency: { type: "boolean" },
-                            strategy_execution: { type: "boolean" }
-                        }
                     },
-                    verification_status: {
+                    diversityMetrics: {
                         type: "object",
+                        required: ["patternNovelty", "structuralUniqueness", "phraseOriginality", "overallFreshness"],
                         properties: {
-                            is_verified: { type: "boolean" },
-                            failure_notes: { type: "string" }
+                            patternNovelty: { type: "number" },
+                            structuralUniqueness: { type: "number" },
+                            phraseOriginality: { type: "number" },
+                            overallFreshness: { type: "number" }
                         }
                     }
                 }
-            },
-            optimization_results: {
-                type: "object",
-                required: ["improvements", "final_version"],
-                properties: {
-                    improvements: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                aspect: { type: "string" },
-                                change: { type: "string" },
-                                impact: { type: "number", minimum: 1, maximum: 10 }
-                            }
-                        }
-                    },
-                    final_version: {
-                        type: "object",
-                        required: ["tweet", "impact_delta"],
-                        properties: {
-                            tweet: { type: "string" },
-                            impact_delta: { type: "number" }
-                        }
-                    }
-                }
-            },
-            selection_rationale: { type: "string" }
+            }
         }
     }
 };

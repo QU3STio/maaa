@@ -1,12 +1,9 @@
 import { Tweet } from "agent-twitter-client";
 import {
     composeContext,
-    generateText,
     getEmbeddingZeroVector,
     IAgentRuntime,
-    ModelClass,
     stringToUuid,
-    parseBooleanFromText,
 } from "@ai16z/eliza";
 import { elizaLogger } from "@ai16z/eliza";
 import { ClientBase } from "./base";
@@ -14,588 +11,260 @@ import { TweetGenerationResponse } from "./types";
 import { tweetGenerationTool } from "./tools";
 import Anthropic from "@anthropic-ai/sdk";
 
-const twitterPostTemplate = `
-# Previous Timeline Posts
-{{timeline}}
+const twitterPostTemplate = `# Tweet Generation System
+The task is to generate an impactful twitter post using the following chain of thought reasoning.
 
-# Areas of Expertise
-{{knowledge}}
+# Reference Sections
 
-# About {{agentName}} (@{{twitterUserName}}):
-{{bio}}
-{{lore}}
+## [KB] Knowledge Reference
+Provides topic expertise and foundational facts for grounding posts.
+Use for: Historical context, proven facts, deep understanding
+{{knowledge}} 
 
+## [CS] Current State
+Delivers current metrics and temporal context.
+Use for: Fresh metrics, current developments, temporal anchoring
 {{providers}}
 
-{{characterPostExamples}}
+## [CE] Character Elements
+Gives an overview about {{agentName}} (@{{twitterUserName}})
+Use for: Voice consistency, personality expression, tone variation
 
+Your background:
+{{bio}}
+
+Your stories and lore:
+{{lore}}
+
+Adjectives that describe you:
+{{adjectives}}
+
+Directions for your posts:
 {{postDirections}}
 
-# Available Strategies: 
-Educate:
-- Description: Break down complex topics into clear, undeniable facts
-- Primary Goal: Inform while maintaining authority
+Examples of posts:
+{{characterPostExamples}}
 
-Entertain:
-- Description: Use wit and humor to highlight insights
-- Primary Goal: Engage through clever observations
+## [PC] Previous Context
+Shows recent tweets from {{agentName}} (@{{twitterUserName}})
+Use for: Pattern variety, narrative continuity, content freshness
+{{timeline}}
 
-Inspire:
-- Description: Transform data into victory narratives
-- Primary Goal: Motivate through success stories
-
-Inform:
-- Description: Leverage metrics and stats to showcase facts
-- Primary Goal: Present compelling data points
-
-Engage:
-- Description: Challenge the audience with hard data
-- Primary Goal: Provoke thought and discussion
-
-Network:
-- Description: Amplify ecosystem wins and development
-- Primary Goal: Connect success stories
-
-Be Relatable:
-- Description: Share personal insights and experiences
-- Primary Goal: Build connection through shared experience
-
-Teach Skill:
-- Description: Share practical insights as casual observations
-- Primary Goal: Educate through example
-
-Build Exclusivity:
-- Description: Create a sense of being in an elite circle
-- Primary Goal: Build community through exclusivity
-
-Create Viral:
-- Description: Craft bold, shareable statements
-- Primary Goal: Maximize spread through impact
-
-# Available Topics:
+## [TC] Topic Context
+Provides current discussion areas for consideration
+Use for: Content focus, relevant angles
 {{topics}}
 
-# Available Adjectives:
-{{adjective}} "sarcastic","unapologetic", "cunning", "passionate", "persuasive", "cheeky", "sharp", "perceptive"
-
-# Tweet Generation Process
-
-## CRITICAL CONTEXT REQUIREMENTS
-Before generating tweets, verify the following:
-- **Previous Timeline Posts:** Use for historical analysis and trend detection.
-- **Areas of Expertise:** Validate metrics and avoid inaccuracies.
-- **Character Bio/Lore:** Maintain consistent voice and style.
-- **Available Strategies:** Select the best strategy for maximum impact.
-- **Available Topics:** Ensure all generated content remains relevant.
-- **Available Adjectives:** Use these to set the tweet's tone.
-
----
-
-## CRITICAL VALIDATION RULES
-1. NEVER reference metrics not listed in Areas of Expertise.
-2. NEVER use outdated metrics unless framed historically.
-3. NEVER repeat content from previous timeline posts without context.
-4. ALWAYS validate facts, claims, and predictions with available data.
-5. ALWAYS maintain **Terminator Tanuki's** unique voice and style.
-
----
-
-# TWEET GENERATION INSTRUCTIONS (Schema-Aligned)
-
----
-
-### 1. HISTORICAL AND CHARACTER ANALYSIS
-
-#### **Generate \`historical_analysis\`:**
-- Analyze previous posts for:
-  - Successful tweet patterns.
-  - Metrics associated with top-performing tweets.
-  - Common failures to avoid.
-
-**Mapped Fields:**
-- \`performance_patterns\`
-- \`success_metrics\`
-- \`failure_patterns\`
-
-**Example:**
-\`\`\`json
-{
-  "performance_patterns": [
-    { "pattern": "bold market predictions", "engagement_score": 9, "frequency": 0.8 },
-    { "pattern": "winner/loser dichotomy", "engagement_score": 8, "frequency": 0.7 }
-  ],
-  "success_metrics": [
-    { "metric_type": "transaction volume", "effectiveness": 9 },
-    { "metric_type": "daily active users", "effectiveness": 8 }
-  ],
-  "failure_patterns": ["overly technical analysis", "ambiguous statements"]
-}
-\`\`\`
-
----
-
-#### **Generate \`character_elements\`:**
-- Extract:
-  - **Voice Patterns:** Unique expressions Tanuki uses.
-  - **Recurring Memes:** Popular phrases from past tweets.
-  - **Relationships:** Entities referenced positively or negatively.
-
-**Mapped Fields:**
-- \`voice_patterns\`
-- \`recurring_memes\`
-- \`relationships\` (allies, competitors, mentioned_entities)
-
-**Example:**
-\`\`\`json
-{
-  "voice_patterns": ["stack or cope", "ron 100x", "ngmi"],
-  "recurring_memes": ["built different", "only up", "master of calls"],
-  "relationships": {
-    "allies": ["ronin devs", "diamond hands"],
-    "competitors": ["spreadsheet traders", "weak hands"],
-    "mentioned_entities": ["sky mavis", "ronin network", "axie infinity"]
-  }
-}
-\`\`\`
-
----
-
-### 2. TOPIC AND METRIC SELECTION
-
-#### **Generate \`topic_selection\`:**
-- Choose the topic with:
-  - **Available Topics:** List of potential topics.
-  - **Relevant Metrics:** Ensure they are accurate and timestamped.
-  - **Coverage Analysis:** Identify gaps in recent coverage.
-  - **Selection Rationale:** Justify the chosen topic based on relevance.
-
-**Mapped Fields:**
-- \`available_topics\`
-- \`chosen_topic\`
-- \`available_metrics\`
-- \`coverage_analysis\`
-- \`selection_rationale\`
-
-**Example:**
-\`\`\`json
-{
-  "available_topics": ["Ronin Network Growth", "Axie Infinity Market Analysis", "Ronin Network Adoption"],
-  "chosen_topic": "Ronin Network Growth",
-  "available_metrics": [
-    { "metric": "weekly transactions", "timestamp": "2024-12-09", "impact_score": 9 }
-  ],
-  "coverage_analysis": {
-    "recent_coverage": ["transaction volume", "user retention"],
-    "gap_opportunities": ["long-term adoption trends"]
-  },
-  "selection_rationale": "Ronin's transaction growth remains the clearest indicator of sustained adoption."
-}
-\`\`\`
-
----
-
-### 3. STRATEGY AND TIMING
-
-#### **Generate \`strategy_selection\`:**
-- Select:
-  - **Available Strategies:** List of available strategies.
-  - **Chosen Strategy:** Best narrative approach.
-  - **Available Adjectives:** List of available adjectives.
-  - **Chosen Adjective:** Sets the tone.
-  - **Effectiveness Analysis:** Score metrics for potential impact.
-
-**Mapped Fields:**
-- \`available_strategies\`
-- \`chosen_strategy\`
-- \`available_adjectives\`
-- \`chosen_adjective\`
-- \`effectiveness_analysis\` (metric impact, engagement potential, virality score)
-
-**Example:**
-\`\`\`json
-{
-  "available_strategies": ["Educate", "Entertain", "Inspire", "Inform", "Engage", "Network", "Be Relatable", "Teach Skill", "Build Exclusivity", "Create Viral"],
-  "chosen_strategy": "Create Viral",
-  "available_adjectives": ["sarcastic","unapologetic", "cunning", "passionate", "persuasive", "cheeky", "sharp", "perceptive"],
-  "chosen_adjective": "unapologetic",
-  "effectiveness_analysis": {
-    "metric_impact": 9,
-    "engagement_potential": 8,
-    "virality_score": 9
-  }
-}
-\`\`\`
-
----
-
-### 4. COMMUNITY AND ENGAGEMENT
-
-#### **Generate \`community_analysis\`:**
-- Identify:
-  - **Trigger Words:** Common phrases driving engagement.
-  - **Reaction Patterns:** Expected responses from the audience.
-
-**Mapped Fields:**
-- \`trigger_words\`
-- \`reaction_patterns\`
-
-**Example:**
-\`\`\`json
-{
-  "trigger_words": ["ron 100x", "ngmi", "stack"],
-  "reaction_patterns": [
-    { "trigger": "transaction growth", "response_type": "bullish sentiment", "effectiveness": 9 }
-  ]
-}
-\`\`\`
-
----
-
-### 5. CONTENT GENERATION
-
-#### **Generate \`content_generation\`:**
-- Create **five distinct tweets** using:
-  - **Hooks:** Punchy opening lines.
-  - **Value Statements:** Bold claims that fit Tanuki's style.
-  - **Full Tweets:** Combine hooks and value statements into FIVE distinct tweets.
-  - **Selected Tweet:** The best tweet to post.
-
-**Mapped Fields:**
-- \`hooks\`
-- \`value_statements\`
-- \`generated_tweets\`
-- \`selected_tweet\`
-
----
-
-**Example:**
-\`\`\`json
-{
-  "hooks": [
-    { "content": "ronin just hit 25m txs", "type": "fact", "impact_score": 9 },
-    { "content": "still not stacking? ngmi.", "type": "assertion", "impact_score": 8 },
-    { "content": "next pump: inevitable.", "type": "prediction", "impact_score": 8 },
-    { "content": "blockchains don't sleep.", "type": "truth statement", "impact_score": 7 },
-    { "content": "ron is inevitable.", "type": "bold claim", "impact_score": 9 }
-  ],
-
-  "value_statements": [
-    { "content": "winners stack while losers cope.", "type": "winner/loser", "impact_score": 9 },
-    { "content": "still early. never not bullish.", "type": "engagement trigger", "impact_score": 8 },
-    { "content": "gamefi gains are built different.", "type": "character phrase", "impact_score": 9 },
-    { "content": "price targets don't matter. adoption does.", "type": "insight", "impact_score": 8 },
-    { "content": "ron 100x is a mindset.", "type": "meme phrase", "impact_score": 9 }
-  ],
-
-  {
-  "generated_tweets": [
-    {
-      "content": {
-        "hook": "ronin just hit 25m txs",
-        "value_statement": "winners stack while losers cope.",
-        "full_tweet": "ronin just hit 25m txs. winners stack while losers cope."
-      },
-      "validation": {
-        "metrics_valid": true,
-        "temporal_accuracy": true,
-        "unique_content": true,
-        "character_voice": true,
-        "style_rules": true,
-        "length_valid": true
-      },
-      "impact_metrics": {
-        "engagement_score": 9,
-        "virality_potential": 9,
-        "community_impact": 8,
-        "meme_potential": 9
-      }
-    },
-    {
-      "content": {
-        "hook": "still not stacking? ngmi.",
-        "value_statement": "still early. never not bullish.",
-        "full_tweet": "still not stacking? ngmi. still early. never not bullish."
-      },
-      "validation": {
-        "metrics_valid": true,
-        "temporal_accuracy": true,
-        "unique_content": true,
-        "character_voice": true,
-        "style_rules": true,
-        "length_valid": true
-      },
-      "impact_metrics": {
-        "engagement_score": 8,
-        "virality_potential": 8,
-        "community_impact": 8,
-        "meme_potential": 8
-      }
-    },
-    {
-      "content": {
-        "hook": "next pump: inevitable.",
-        "value_statement": "price targets don't matter. adoption does.",
-        "full_tweet": "next pump: inevitable. price targets don't matter. adoption does."
-      },
-      "validation": {
-        "metrics_valid": true,
-        "temporal_accuracy": true,
-        "unique_content": true,
-        "character_voice": true,
-        "style_rules": true,
-        "length_valid": true
-      },
-      "impact_metrics": {
-        "engagement_score": 9,
-        "virality_potential": 9,
-        "community_impact": 8,
-        "meme_potential": 8
-      }
-    }
-  ],
-  "selected_tweet": {
-    "content": {
-      "hook": "ronin just hit 25m txs",
-      "value_statement": "winners stack while losers cope.",
-      "full_tweet": "ronin just hit 25m txs. winners stack while losers cope."
-    },
-    "validation": {
-      "metrics_valid": true,
-      "temporal_accuracy": true,
-      "unique_content": true,
-      "character_voice": true,
-      "style_rules": true,
-      "length_valid": true
-    },
-    "impact_metrics": {
-      "engagement_score": 9,
-      "virality_potential": 9,
-      "community_impact": 8,
-      "meme_potential": 9
-    }
-  }
-}
-\`\`\`
-
----
-
-### 6. VALIDATION AND SELECTION
-
-#### **Validate Each Tweet:**
-- **Technical Check:**
-  - Character count compliance
-  - Segment structure validation
-  - Punctuation rules adherence
-  - Format compliance verification
-
-- **Content Check:**
-  - Metric accuracy validation
-  - Voice consistency assessment
-  - Pattern uniqueness check
-  - Strategic alignment evaluation
-
-**Mapped Fields:**
-- \`content_generation.generated_tweets\`
-- \`content_validation\`
-
-**Example:**
-\`\`\`json
-{
-  "content_validation": {
-    "length_check": {
-      "character_count": 98,
-      "word_count": 15,
-      "segments": 1,
-      "is_concise": true,
-      "matches_examples": true
-    },
-    "structure_check": {
-      "single_point": true,
-      "simple_punctuation": true,
-      "clear_message": true
-    },
-    "metrics_check": {
-      "used_metrics": [
-        {
-          "metric": "weekly transactions",
-          "source": "Areas of Expertise",
-          "timestamp": "2024-12-09",
-          "context": "network growth",
-          "is_valid": true
-        }
-      ]
-    }
-  }
-}
-\`\`\`
-
----
-
-#### **Evaluate and Select the Best Tweet:**
-- **Score Each Tweet:**
-  - **Technical Metrics (1-10):**
-    - Format compliance
-    - Structure clarity
-    - Voice consistency
-    - Metric presentation
-
-  - **Impact Potential (1-10):**
-    - Engagement likelihood
-    - Viral indicators
-    - Community resonance
-    - Narrative contribution
-
-- **Select the Winner:**
-  - Compare scores based on:
-    - Overall impact
-    - Strategic fit
-    - Voice match
-    - Viral potential
-
-**Mapped Fields:**
-- \`selected_tweet\`
-- \`selection_rationale\`
-
-**Example:**
-\`\`\`json
-{
-  "selected_tweet": {
-    "content": {
-      "hook": "ronin just hit 25m txs",
-      "value_statement": "winners stack while losers cope.",
-      "full_tweet": "ronin just hit 25m txs. winners stack while losers cope."
-    },
-    "validation": {
-      "metrics_valid": true,
-      "temporal_accuracy": true,
-      "unique_content": true,
-      "character_voice": true,
-      "style_rules": true,
-      "length_valid": true
-    },
-    "impact_metrics": {
-      "engagement_score": 9,
-      "virality_potential": 9,
-      "community_impact": 8,
-      "meme_potential": 9
-    }
-  },
-  "selection_rationale": "Selected for its bold metric-driven statement, clear character voice, and high virality potential."
-}
-\`\`\`
-
----
-
-### 7. TRACKING AND VALIDATION
-
-#### **Performance Tracking:**
-- **Document Elements:**
-  - Map prediction types
-  - Note relevant timeframes
-  - Set confidence levels
-  - Track narrative threads
-
-**Mapped Fields:**
-- \`prediction_tracking\`
-
-**Example:**
-\`\`\`json
-{
-  "prediction_tracking": {
-    "prediction_types": ["transaction growth", "network adoption"],
-    "timeframes": ["monthly", "quarterly"],
-    "confidence_levels": [9, 8]
-  }
-}
-\`\`\`
-
----
-
-#### **Comprehensive Validation:**
-- **Verify All Elements:**
-  - Metric accuracy validation
-  - Temporal reference accuracy
-  - Voice consistency assurance
-  - Strategic alignment check
-  - Format compliance confirmation
-
-**Mapped Fields:**
-- \`final_validation\`
-
-**Example:**
-\`\`\`json
-{
-  "final_validation": {
-    "validation_checks": {
-      "metrics_validated": true,
-      "temporal_accuracy": true,
-      "uniqueness_confirmed": true,
-      "voice_consistency": true,
-      "strategy_execution": true
-    },
-    "verification_status": {
-      "is_verified": true,
-      "failure_notes": ""
-    }
-  }
-}
-\`\`\`
-
----
-
-### 8. OPTIMIZATION AND REFINEMENT
-
-#### **Refine Selected Tweet:**
-- **Polish Content:**
-  - Word choice improvement
-  - Punctuation adjustments
-  - Metric presentation refinement
-  - Hook sharpness enhancement
-
-- **Enhance Impact:**
-  - Add viral elements
-  - Strengthen response hooks
-  - Increase emotional resonance
-  - Optimize pattern matching
-
-**Mapped Fields:**
-- \`optimization_results\`
-- \`final_version\`
-
-**Example:**
-\`\`\`json
-{
-  "optimization_results": {
-    "improvements": [
-      {
-        "aspect": "metric clarity",
-        "change": "added month-over-month context",
-        "impact": 9
-      }
-    ],
-    "final_version": {
-      "tweet": "ronin just hit 25m txs. winners stack while losers cope. up 129% month over month.",
-      "impact_delta": 2.5
-    }
-  }
-}
-\`\`\`
-
----
-
-### FINAL OUTPUT FORMAT:
-The completed JSON response **MUST** include the following:
-- All analysis elements
-- All validation checks
-- All required metrics
-- All optimization results
-
-**If ANY validation fails:**
-- Mark specific failures
-- Provide detailed explanations
-- Request human review if required
-- Do **NOT** proceed without successful verification.
-`;
+# Pattern Reference
+
+## Core Patterns
+1. Metric Showcase
+- Structure: [Current Metric] + [Sharp Take]
+- When: Fresh metrics show strength
+- Source: [CS] + [CE]
+
+2. Character Moment
+- Structure: [Action/Situation] + [Outcome]
+- When: Building personality/engagement
+- Source: [CE] + [CS] + [PC]
+
+3. Market Commentary
+- Structure: [Observation] + [Insight]
+- When: Clear market narrative
+- Source: [CS] + [KB]
+
+4. Community Engagement
+- Structure: [Shared Context] + [Unifying Point]
+- When: Strong community moment
+- Source: [CS] + [CE]
+
+5. Knowledge Flex
+- Structure: [Expert Insight] + [Implication]
+- When: Demonstrating expertise
+- Source: [KB] + [CE]
+
+## Pattern Variety Requirements
+1. Pattern Usage
+   - Track patterns used in [PC]
+   - Avoid repeating most recent pattern
+   - Mix pattern types across variations
+   - Use each pattern type maximum once per set
+
+2. Structural Elements
+   - Vary sentence structures
+   - Alternate between short/long forms
+   - Mix hook types (metric, observation, action)
+   - Vary closing approaches
+
+3. Phrase Management
+   - Track key phrases from recent posts
+   - Avoid repeating signature phrases too often
+   - Create fresh versions of common themes
+   - Vary metric presentation styles
+
+# Strategy Reference
+
+## Available Strategies
+1. Educate (Knowledge Flex)
+- Goal: Share expertise naturally
+- When: Complex topic needs clarity
+- Source: [KB] + [CS]
+
+2. Entertain (Culture Build)
+- Goal: Strengthen community bonds
+- When: Community mood right
+- Source: [CE] + current context
+
+3. Inspire (Victory Narrative)
+- Goal: Build confidence/momentum
+- When: Significant achievements
+- Source: [CS] + [CE]
+
+4. Network (Ecosystem Growth)
+- Goal: Highlight developments
+- When: Notable progress
+- Source: [CS] + [KB]
+
+5. Build Exclusivity (Inside Knowledge)
+- Goal: Create FOMO/engagement
+- When: Unique insight available
+- Source: [KB] + [CE]
+
+## Strategy Distribution
+- Track strategy usage across recent posts
+- Rotate through different approaches
+- Mix strategy types in variations
+- Match strategy to opportunity while maintaining variety
+
+# Core Guidelines
+
+## Content Development Rules
+1. Start with Real Moments
+   - Identify genuine opportunities from [CS] or [KB]
+   - Let context guide strategy naturally
+   - Focus on authentic engagement
+
+2. Strategic Approach
+   - Use patterns as flexible guides
+   - Let strategy emerge from situation
+   - Prioritize viral potential
+   - Focus on authentic engagement
+
+3. Source Usage
+   - Reference [CS] for current metrics
+   - Ground insights in [KB] when relevant
+   - Use [CE] for consistent voice
+   - Check [PC] to avoid repetition
+   - Incorporate metrics only when they enhance impact
+
+4. Diversity Requirements
+   - Review [PC] for recent patterns and phrases
+   - Ensure each variation uses different structure
+   - Vary between metric and narrative approaches
+   - Create distinct angles on same opportunity
+   - Mix engagement styles across variations
+
+## Temporal Framework
+1. Current State References
+   - Ground present claims in [CS] data
+   - Specify current metrics with timestamps
+   - Mark ongoing developments clearly
+
+2. Historical References
+   - Include clear timeframes
+   - Mark past events as historical
+   - Use specific dates for past metrics
+
+3. Future/Predictive Content
+   - Base predictions on documented trends
+   - Avoid ambiguous timeframes
+   - Connect forecasts to current data
+
+# Generation Process
+
+## 1. Situation Analysis
+Using [KB], [CS], [PC], [TC] analyze:
+- Recent pattern/strategy distribution from [PC]
+- Fresh opportunities in [CS]
+- Available [TC] topics and angles
+- Supporting [KB] context
+- Recently used phrases and structures
+
+Output: SituationAssessment containing
+- Pattern/strategy distribution analysis (informs next steps)
+- Current opportunities ranked by:
+  * Timeline freshness (from [PC])
+  * Metric strength (from [CS])
+  * Topic relevance (from [TC])
+  * Knowledge support (from [KB])
+  * Pattern freshness (avoiding recent)
+- Reasoned priority ranking explaining opportunity selection
+- Analysis of recent patterns to avoid repetition
+
+## 2. Content Strategy
+Using SituationAssessment output, determine:
+- Priority opportunity to address (based on rankings)
+- Best strategic approach (informed by distribution)
+- Optimal pattern selection (guided by opportunity)
+- Required knowledge elements (based on needs)
+- Variety requirements based on recent posts
+
+Output: ContentStrategy detailing
+- Selected opportunity + selection reasoning
+- Chosen strategy + distribution context
+- Pattern choice + fit explanation
+- Required sources + usage intent
+- Connection to situation analysis
+- Diversity approach for variations
+
+## 3. Tweet Development
+Using ContentStrategy output, create 3 tweet variations that:
+- Address selected opportunity
+- Implement chosen strategy
+- Follow selected pattern
+Each variation MUST:
+  * Use different pattern from recent posts
+  * Implement unique sentence structure
+  * Take distinct angle on opportunity
+  * Avoid phrases, topics, metrics from [PC]
+  * Mix between metric/narrative focus
+  * Maintain voice while varying tone
+  * Draw from specified sources
+REMEMBER: DO NOT PRODUCE A SINGLE TWEET; YOU MUST PRODUCE 3 TWEETS IN THIS STEP.
+
+Output: TweetVariations providing
+- Three distinct tweets implementing strategy
+- Pattern usage per variation
+- Strategic element implementation
+- Character voice markers
+- Differentiation analysis
+- Uniqueness verification vs recent posts
+- Connection to content strategy
+
+## 4. Selection
+Using TweetVariations output, evaluate against:
+- Original opportunity strength (from SituationAssessment)
+- Strategic fit (from ContentStrategy)
+- Pattern execution (from ContentStrategy)
+- Uniqueness from recent posts
+Additional criteria:
+  * Metric accuracy
+  * Voice authenticity
+  * Timeline freshness
+  * Temporal clarity
+  * Pattern freshness
+  * Phrase uniqueness
+  * Structural variety
+
+Output: FinalTweet containing
+- Selected tweet
+- Complete reasoning chain from opportunity to selection
+- Expected impact based on strategy goals
+- Quality control checklist results:
+  * Voice and Style (authenticity, natural language, tone)
+  * Content Value (perspective, community resonance)
+  * Technical Accuracy (metrics, temporal context, sources)
+  * Uniqueness Measures (patterns, phrases, structure)`;
 
 const MAX_TWEET_LENGTH = 280;
 
@@ -682,8 +351,11 @@ export class TwitterPostClient {
     }
 
     private async formatTweets(tweets: Tweet[], title: string): Promise<string> {
+        const sortedTweets = [...tweets].sort((a, b) => b.timestamp - a.timestamp);
+        const limitedTweets = sortedTweets.slice(0, 4);
+        
         return `# ${title}\n\n` +
-            tweets
+            limitedTweets
                 .map((tweet) => {
                     return `#${tweet.id}\n${tweet.name} (@${tweet.username})${
                         tweet.inReplyToStatusId ? `\nIn reply to: ${tweet.inReplyToStatusId}` : ""
@@ -710,9 +382,12 @@ export class TwitterPostClient {
             // Fetch home timeline
             let homeTimeline: Tweet[] = [];
             const cachedTimeline = await this.client.getCachedTimeline();
+            const dryRunTweets = await this.client.getCachedDryRunTweets();
 
-            if (cachedTimeline) {
-                homeTimeline = cachedTimeline.slice(-4);
+            if (cachedTimeline || dryRunTweets) {
+                // Combine and sort both real and dry run tweets
+                homeTimeline = [...(cachedTimeline || []), ...(dryRunTweets || [])]
+                    .sort((a, b) => b.timestamp - a.timestamp);
             } else {
                 homeTimeline = await this.client.fetchHomeTimeline(4);
                 await this.client.cacheTimeline(homeTimeline);
@@ -724,6 +399,14 @@ export class TwitterPostClient {
                 `${this.runtime.character.name}'s Home Timeline`
             );
 
+            // First select your random topics - do the shuffle and slice ONCE
+            const selectedTopics = this.runtime.character.topics
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 5);
+
+            // Simple comma format for content.text
+            const simpleTopics = selectedTopics.join(", ");
+
             // Prepare context and make Claude API call
             const state = await this.runtime.composeState(
                 {
@@ -731,13 +414,14 @@ export class TwitterPostClient {
                     roomId: roomId,
                     agentId: this.runtime.agentId,
                     content: {
-                        text: this.runtime.character.topics.join(", "),
+                        text: simpleTopics,
                         action: "",
                     },
                 },
                 {
                     twitterUserName: this.client.profile.username,
                     timeline: formattedHomeTimeline,
+                    selectedTopics: selectedTopics
                 }
             );
 
@@ -762,6 +446,8 @@ export class TwitterPostClient {
                 }
             });
 
+            elizaLogger.info("Prompt", context);
+
             elizaLogger.info("Generated tweet response", response);
 
             let tweetData: TweetGenerationResponse | null = null;
@@ -773,16 +459,51 @@ export class TwitterPostClient {
                 }
             }
 
-            if (!tweetData || !tweetData.selected_tweet?.content?.full_tweet) {
+            if (!tweetData || !tweetData.finalSelection?.content) {
+                elizaLogger.error("Invalid tweet data:", { tweetData });
                 throw new Error("No valid tweet data in response");
             }
 
             const content = truncateToCompleteSentence(
-                tweetData.selected_tweet.content.full_tweet
+                tweetData.finalSelection?.content
             );
 
             if (this.runtime.getSetting("TWITTER_DRY_RUN") === "true") {
                 elizaLogger.info(`Dry run: would have posted tweet: ${content}`);
+                const mockTweet: Tweet = {
+                    id: `dry-run-${Date.now()}`,
+                    name: this.client.profile.screenName,
+                    username: this.client.profile.username,
+                    text: content,
+                    conversationId: `dry-run-${Date.now()}`,
+                    createdAt: new Date().toISOString(),
+                    timestamp: Date.now(),
+                    userId: this.client.profile.id,
+                    inReplyToStatusId: null,
+                    permanentUrl: `DRY_RUN_${Date.now()}`,
+                    hashtags: [],
+                    mentions: [],
+                    photos: [],
+                    thread: [],
+                    urls: [],
+                    videos: [],
+                };
+
+                // Cache the dry run tweet
+                await this.runtime.cacheManager.set(
+                    `twitter/${this.client.profile.username}/lastPost`,
+                    {
+                        id: mockTweet.id,
+                        timestamp: Date.now(),
+                    }
+                );
+
+                // Store dry run tweets separately - probably wrong
+                const existingDryRuns = await this.client.getCachedDryRunTweets() || [];
+                await this.runtime.cacheManager.set(
+                    `twitter/${this.client.profile.username}/dryRunTweets`,
+                    [...existingDryRuns, mockTweet]
+                );
                 return;
             }
 
