@@ -1,6 +1,6 @@
 // types.ts
 
-// Input Analysis Types
+// Tweet Generation
 interface SituationAssessment {
     patternAnalysis: {
         recentDistribution: Record<string, number>;
@@ -115,4 +115,75 @@ export interface TweetGenerationResponse {
     contentStrategy: ContentStrategy;
     tweetDevelopment: TweetDevelopment;
     finalSelection: FinalTweet;
+}
+
+// Topic Assessment
+export interface MetricSaturation {
+    value: string;
+    lastUsed: string;
+    useCount: number;
+    associatedThemes: string[];
+  }
+  
+  export interface TopicSaturation {
+    project: string;
+    lastDiscussed: string;
+    frequency: number;
+    associatedMetrics: string[];
+  }
+  
+  export interface FreshnessMetrics {
+    metricUniqueness: number;  // 0-1.0
+    topicNovelty: number;      // 0-1.0
+    angleOriginality: number;  // 0-1.0
+    overallFreshness: number;  // 0-1.0
+  }
+  
+  export interface TopicOpportunity {
+    topic: string;
+    angle: string;
+    supportingMetrics?: string[];
+    reasoning: string;
+    freshness: FreshnessMetrics;
+    impact: number;            // 0-1.0
+    priority: number;          // 0-1.0
+  }
+  
+  export interface BackupTopic {
+    topic: string;
+    type: 'character_moment' | 'observation' | 'prediction';
+    angle: string;
+    reasoning: string;
+    lastUsed?: string;
+  }
+  
+  export interface CoverageAnalysis {
+    saturatedMetrics: MetricSaturation[];
+    saturatedTopics: TopicSaturation[];
+    recommendedRotation: {
+      avoidMetrics: string[];
+      avoidProjects: string[];
+      suggestedThemes: string[];
+    };
+  }
+  
+  export interface TopicAssessmentResponse {
+    highPriorityTopics: TopicOpportunity[];
+    backupTopics: BackupTopic[];
+    analysis: {
+      coverage: CoverageAnalysis;
+      freshness: {
+        overallAssessment: string;
+        rotationNeeded: boolean;
+        nextBestTiming: {
+          metrics: Record<string, string>;
+          topics: Record<string, string>;
+        };
+      };
+      distribution: {
+        recentPatterns: string[];
+        suggestedNextPattern: string;
+        themeBalance: Record<string, number>;
+      };
+    };
 }

@@ -7,8 +7,8 @@ import {
 } from "@ai16z/eliza";
 import { elizaLogger } from "@ai16z/eliza";
 import { ClientBase } from "./base";
-import { TweetGenerationResponse } from "./types";
-import { tweetGenerationTool } from "./tools";
+import { TweetGenerationResponse, TopicAssessmentResponse } from "./types";
+import { tweetGenerationTool, topicAssessmentTool } from "./tools";
 import Anthropic from "@anthropic-ai/sdk";
 
 const twitterPostTemplate = `# Tweet Generation System
@@ -18,12 +18,20 @@ The task is to generate an impactful twitter post using the following chain of t
 
 ## [KB] Knowledge Reference
 Provides topic expertise and foundational facts for grounding posts.
-Use for: Historical context, proven facts, deep understanding
+Use for:
+- Historical facts and project context
+- Technical specifications
+- Protocol documentation
+- Market dynamics
 {{knowledge}} 
 
 ## [CS] Current State
-Delivers current metrics and temporal context.
-Use for: Fresh metrics, current developments, temporal anchoring
+Provides real-time metrics and temporal context.
+Use for:
+- Live performance indicators
+- Growth metrics
+- Network statistics
+- Market conditions
 {{providers}}
 
 ## [CE] Character Elements
@@ -51,37 +59,41 @@ Use for: Pattern variety, narrative continuity, content freshness
 {{timeline}}
 
 ## [TC] Topic Context
-Provides current discussion areas for consideration
-Use for: Content focus, relevant angles
-{{topics}}
+Selected topic from assessment phase.
+Use for:
+- Focus alignment
+- Narrative development
+- Angle execution
+{{selectedTopic}}
 
 # Pattern Reference
 
-## Core Patterns
-1. Metric Showcase
-- Structure: [Current Metric] + [Sharp Take]
-- When: Fresh metrics show strength
-- Source: [CS] + [CE]
+## Content Categories
 
-2. Character Moment
-- Structure: [Action/Situation] + [Outcome]
-- When: Building personality/engagement
-- Source: [CE] + [CS] + [PC]
+1. Culture Posts (Community/Lifestyle)
+- Focus: Community experiences, lifestyle moments
+- Structure: [Cultural Element] + [Activity/Outcome]
+- When: Building community bonds
 
-3. Market Commentary
+2. Narrative Posts (Character/Story)
+- Focus: Personal experiences, character development
+- Structure: [Situation] + [Character Action/Response]
+- When: Strengthening persona
+
+3. Technical Posts (Metrics/Analysis)
+- Focus: Performance data, analysis
+- Structure: [Metric] + [Sharp Take]
+- When: Highlighting achievements
+
+4. Commentary Posts (Market/Trends)
+- Focus: Market observations, trend analysis
 - Structure: [Observation] + [Insight]
 - When: Clear market narrative
-- Source: [CS] + [KB]
 
-4. Community Engagement
-- Structure: [Shared Context] + [Unifying Point]
-- When: Strong community moment
-- Source: [CS] + [CE]
-
-5. Knowledge Flex
-- Structure: [Expert Insight] + [Implication]
-- When: Demonstrating expertise
-- Source: [KB] + [CE]
+5. Hybrid Posts (Mixed Elements)
+- Focus: Combined approaches
+- Structure: [Category A Element] + [Category B Element]
+- When: Complex narratives
 
 ## Pattern Variety Requirements
 1. Pattern Usage
@@ -255,6 +267,11 @@ Additional criteria:
   * Pattern freshness
   * Phrase uniqueness
   * Structural variety
+  * Cultural resonance
+  * Narrative strength
+  * Technical accuracy
+  * Commentary insight
+  * Hybrid balance
 
 Output: FinalTweet containing
 - Selected tweet
@@ -291,6 +308,95 @@ function truncateToCompleteSentence(text: string): string {
 
     return text.slice(0, MAX_TWEET_LENGTH - 3).trim() + "...";
 }
+
+const topicAssessmentTemplate = `# Topic Assessment System
+Analyze current metrics, recent activity, and character interests to identify fresh discussion opportunities.
+
+## Input Sections
+
+[CS] Current State
+{{providers}}
+
+[WC] World Content
+{{worldContent}}
+
+[PC] Previous Context
+Recent Posts: {{timeline}}
+
+[CE] Character Elements
+Interest Areas: {{topics}}
+
+## Analysis Process
+
+### Coverage Analysis
+1. Metric Saturation
+- Track all numerical metrics from recent posts
+- Flag metrics used in last 24h as "saturated"
+- Mark associated themes as "cooling down"
+
+2. Topic Saturation
+- Projects mentioned in last 5 posts
+- Themes used in last 3 posts
+- Bear/bull narratives frequency
+- Pattern repetition
+
+### Fresh Opportunities
+Identify new angles considering:
+- Unused significant metrics (>20% change)
+- Uncovered project developments
+- Novel narrative combinations
+- Emerging patterns
+
+### Priority Assessment
+Score opportunities by:
+- Freshness (0-1.0): Inverse of recent coverage
+- Impact (0-1.0): Metric significance/narrative strength
+- Relevance (0-1.0): Alignment with character/audience
+- Uniqueness (0-1.0): Angle differentiation
+
+## Output Requirements
+
+### Primary Topics
+Must provide 2-3 high priority topics that:
+- Use NO metrics from last 5 posts
+- Cover different projects than last 3 posts
+- Take novel angles on any recurring themes
+- Include clear supporting data
+
+### Backup Topics
+Must provide 2-3 alternative topics that:
+- Focus on character moments
+- Require no current metrics
+- Maintain voice consistency
+- Enable engagement during quiet periods
+
+### Analysis Context
+Must provide:
+- List of saturated metrics/topics
+- Recommended rotation strategy
+- Freshness assessment
+- Topic distribution guidance
+
+## Quality Criteria
+
+### Metric Usage
+- No metric reuse within 5 posts
+- Different projects than last 3 posts
+- New angles on recurring themes
+
+### Topic Selection
+- Clear novelty vs recent posts
+- Strong narrative potential
+- Measurable impact
+- Character alignment
+
+### Backup Planning
+- Character-driven alternatives
+- Non-metric narratives
+- Creative angles
+- Engagement focus
+
+Output your analysis in JSON format following the TopicAssessmentResponse interface.`;
 
 export class TwitterPostClient {
     client: ClientBase;
@@ -364,6 +470,67 @@ export class TwitterPostClient {
                 .join("\n");
     }
 
+    private async assessTopics(): Promise<TopicAssessmentResponse> {
+        const homeTimeline = await this.client.getCachedTimeline() || [];
+        const dryRunTweets = await this.client.getCachedDryRunTweets() || [];
+        const allTweets = [...homeTimeline, ...dryRunTweets].sort((a, b) => b.timestamp - a.timestamp);
+
+        const formattedHomeTimeline = await this.formatTweets(
+            allTweets,
+            `${this.runtime.character.name}'s Home Timeline`
+        );
+
+        const state = await this.runtime.composeState(
+            {
+                userId: this.runtime.agentId,
+                roomId: stringToUuid("topic_assessment-" + this.client.profile.username),
+                agentId: this.runtime.agentId,
+                content: {
+                    text: this.runtime.character.topics.join(", "),
+                    action: "",
+                },
+            },
+            {
+                twitterUserName: this.client.profile.username,
+                timeline: formattedHomeTimeline,
+                topics: this.runtime.character.topics,
+                lastDiscussedTopics: allTweets.slice(0, 5).map(t => t.text)
+            }
+        );
+
+        const context = composeContext({
+            state,
+            template: topicAssessmentTemplate,
+        });
+
+        const response = await this.anthropicClient.messages.create({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 4096,
+            messages: [
+                {
+                    role: "user",
+                    content: context
+                }
+            ],
+            tools: [topicAssessmentTool],
+            tool_choice: {
+                type: "tool",
+                name: "assess_topics"
+            }
+        });
+
+        elizaLogger.info("Topic assessment prompt", context);
+        elizaLogger.info("Topic assessment response", response);
+
+        for (const content of response.content) {
+            if (content.type === "tool_use" && content.name === "assess_topics") {
+                return content.input as TopicAssessmentResponse;
+            }
+        }
+
+        throw new Error("No valid topic assessment in response");
+    }
+
     private async generateNewTweet() {
         elizaLogger.log("Generating new tweet");
 
@@ -378,6 +545,18 @@ export class TwitterPostClient {
                 this.runtime.character.name,
                 "twitter"
             );
+
+            // First, assess topics
+            const topicAssessment = await this.assessTopics();
+            
+            // Get the selected topic
+            const selectedTopic = topicAssessment.highPriorityTopics[0] || 
+                                topicAssessment.backupTopics[0] || 
+                                {
+                                    topic: "character_activity",
+                                    angle: "daily_life",
+                                    reasoning: "Maintaining presence during quiet period"
+                                };
 
             // Fetch home timeline
             let homeTimeline: Tweet[] = [];
@@ -398,24 +577,20 @@ export class TwitterPostClient {
                 `${this.runtime.character.name}'s Home Timeline`
             );
 
-            const selectedTopics = this.runtime.character.topics
-                .sort(() => 0.5 - Math.random())
-                .slice(0, 3);
-
             const state = await this.runtime.composeState(
                 {
                     userId: this.runtime.agentId,
                     roomId: roomId,
                     agentId: this.runtime.agentId,
                     content: {
-                        text: selectedTopics.join(", "),
+                        text: selectedTopic.topic,
                         action: "",
                     },
                 },
                 {
                     twitterUserName: this.client.profile.username,
                     timeline: formattedHomeTimeline,
-                    selectedTopics: selectedTopics
+                    selectedTopic: `Topic: ${selectedTopic.topic}\nAngle: ${selectedTopic.angle}\nReasoning: ${selectedTopic.reasoning}${selectedTopic.score ? `\nScore: ${selectedTopic.score}` : ''}`
                 }
             );
 

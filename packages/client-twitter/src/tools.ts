@@ -1,4 +1,4 @@
-import { Tool } from '@anthropic-ai/sdk';
+import type { Tool } from '@anthropic-ai/sdk/resources/messages';
 
 
 export const tweetGenerationTool: Tool = {
@@ -18,6 +18,7 @@ export const tweetGenerationTool: Tool = {
             "finalSelection"
         ],
         properties: {
+            // Knowledge Base section
             knowledge: {
                 type: "object",
                 required: ["facts", "expertise", "historicalContext"],
@@ -27,6 +28,8 @@ export const tweetGenerationTool: Tool = {
                     historicalContext: { type: "array", items: { type: "string" } }
                 }
             },
+            
+            // Current State section
             currentState: {
                 type: "object",
                 required: ["metrics", "developments"],
@@ -57,6 +60,8 @@ export const tweetGenerationTool: Tool = {
                     }
                 }
             },
+            
+            // Character Elements section
             characterElements: {
                 type: "object",
                 required: ["background", "lore", "adjectives", "postDirections", "examplePosts"],
@@ -68,22 +73,27 @@ export const tweetGenerationTool: Tool = {
                     examplePosts: { type: "array", items: { type: "string" } }
                 }
             },
+            
+            // Previous Context section
             previousContext: {
                 type: "object",
-                required: ["recentTweets", "patterns"],
+                required: ["recentTweets", "patterns", "categories"],
                 properties: {
                     recentTweets: {
                         type: "array",
                         items: {
                             type: "object",
-                            required: ["content", "timestamp", "pattern", "strategy"],
+                            required: ["content", "timestamp", "pattern", "category", "strategy"],
                             properties: {
                                 content: { type: "string" },
                                 timestamp: { type: "string" },
                                 pattern: { type: "string" },
+                                category: { 
+                                    type: "string",
+                                    enum: ["culture", "narrative", "technical", "commentary", "hybrid"]
+                                },
                                 strategy: { type: "string" },
-                                keyPhrases: { type: "array", items: { type: "string" } },
-                                structure: { type: "string" }
+                                keyPhrases: { type: "array", items: { type: "string" } }
                             }
                         }
                     },
@@ -99,21 +109,68 @@ export const tweetGenerationTool: Tool = {
                                 recentPhrases: { type: "array", items: { type: "string" } }
                             }
                         }
+                    },
+                    categories: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            required: ["type", "frequency", "lastUsed"],
+                            properties: {
+                                type: { 
+                                    type: "string",
+                                    enum: ["culture", "narrative", "technical", "commentary", "hybrid"]
+                                },
+                                frequency: { type: "number" },
+                                lastUsed: { type: "string" }
+                            }
+                        }
                     }
                 }
             },
+
+            // Topic Context section
             topicContext: {
                 type: "object",
-                required: ["currentTopics", "relevance"],
+                required: ["selectedTopic", "categoryAlignment"],
                 properties: {
-                    currentTopics: { type: "array", items: { type: "string" } },
-                    relevance: { type: "object", additionalProperties: { type: "string" } }
+                    selectedTopic: {
+                        type: "object",
+                        required: ["topic", "angle", "supportingData"],
+                        properties: {
+                            topic: { type: "string" },
+                            angle: { type: "string" },
+                            supportingData: {
+                                type: "object",
+                                required: ["metrics", "narrative", "reasoning"],
+                                properties: {
+                                    metrics: { type: "array", items: { type: "string" } },
+                                    narrative: { type: "string" },
+                                    reasoning: { type: "string" }
+                                }
+                            }
+                        }
+                    },
+                    categoryAlignment: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            required: ["category", "strength"],
+                            properties: {
+                                category: {
+                                    type: "string",
+                                    enum: ["culture", "narrative", "technical", "commentary", "hybrid"]
+                                },
+                                strength: { type: "number" }
+                            }
+                        }
+                    }
                 }
             },
-            // Generation process properties
+
+            // Situation Analysis section
             situationAnalysis: {
                 type: "object",
-                required: ["patternAnalysis", "opportunities"],
+                required: ["patternAnalysis", "opportunities", "categoryAnalysis"],
                 properties: {
                     patternAnalysis: {
                         type: "object",
@@ -129,7 +186,17 @@ export const tweetGenerationTool: Tool = {
                         type: "array",
                         items: {
                             type: "object",
-                            required: ["description", "timelineFreshness", "metricStrength", "topicRelevance", "knowledgeSupport", "priority", "reasoning", "patternFreshness"],
+                            required: [
+                                "description",
+                                "timelineFreshness",
+                                "metricStrength",
+                                "topicRelevance",
+                                "knowledgeSupport",
+                                "priority",
+                                "reasoning",
+                                "patternFreshness",
+                                "suggestedCategories"
+                            ],
                             properties: {
                                 description: { type: "string" },
                                 timelineFreshness: { type: "number" },
@@ -138,22 +205,63 @@ export const tweetGenerationTool: Tool = {
                                 knowledgeSupport: { type: "number" },
                                 priority: { type: "number" },
                                 reasoning: { type: "string" },
-                                patternFreshness: { type: "number" }
+                                patternFreshness: { type: "number" },
+                                suggestedCategories: {
+                                    type: "array",
+                                    items: {
+                                        type: "string",
+                                        enum: ["culture", "narrative", "technical", "commentary", "hybrid"]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    categoryAnalysis: {
+                        type: "object",
+                        required: ["distribution", "recommendation"],
+                        properties: {
+                            distribution: { 
+                                type: "object",
+                                additionalProperties: { type: "number" }
+                            },
+                            recommendation: {
+                                type: "object",
+                                required: ["preferredCategory", "reasoning"],
+                                properties: {
+                                    preferredCategory: { 
+                                        type: "string",
+                                        enum: ["culture", "narrative", "technical", "commentary", "hybrid"]
+                                    },
+                                    reasoning: { type: "string" }
+                                }
                             }
                         }
                     }
                 }
             },
+
+            // Content Strategy section
             contentStrategy: {
                 type: "object",
-                required: ["selectedOpportunity", "chosenStrategy", "patternChoice", "requiredSources", "situationConnection", "diversityApproach"],
+                required: [
+                    "selectedOpportunity",
+                    "chosenStrategy",
+                    "patternChoice",
+                    "requiredSources",
+                    "situationConnection",
+                    "diversityApproach"
+                ],
                 properties: {
                     selectedOpportunity: {
                         type: "object",
-                        required: ["description", "reasoning"],
+                        required: ["description", "reasoning", "category"],
                         properties: {
                             description: { type: "string" },
-                            reasoning: { type: "string" }
+                            reasoning: { type: "string" },
+                            category: {
+                                type: "string",
+                                enum: ["culture", "narrative", "technical", "commentary", "hybrid"]
+                            }
                         }
                     },
                     chosenStrategy: {
@@ -166,10 +274,11 @@ export const tweetGenerationTool: Tool = {
                     },
                     patternChoice: {
                         type: "object",
-                        required: ["type", "fitExplanation"],
+                        required: ["type", "fitExplanation", "categoryAlignment"],
                         properties: {
                             type: { type: "string" },
-                            fitExplanation: { type: "string" }
+                            fitExplanation: { type: "string" },
+                            categoryAlignment: { type: "string" }
                         }
                     },
                     requiredSources: {
@@ -186,15 +295,18 @@ export const tweetGenerationTool: Tool = {
                     situationConnection: { type: "string" },
                     diversityApproach: {
                         type: "object",
-                        required: ["plannedStructures", "avoidPhrases", "angleVariations"],
+                        required: ["plannedStructures", "avoidPhrases", "angleVariations", "categoryBalance"],
                         properties: {
                             plannedStructures: { type: "array", items: { type: "string" } },
                             avoidPhrases: { type: "array", items: { type: "string" } },
-                            angleVariations: { type: "array", items: { type: "string" } }
+                            angleVariations: { type: "array", items: { type: "string" } },
+                            categoryBalance: { type: "string" }
                         }
                     }
                 }
             },
+
+            // Tweet Development section
             tweetDevelopment: {
                 type: "object",
                 required: ["variations", "differentiation", "uniquenessVerification", "strategyConnection"],
@@ -203,21 +315,41 @@ export const tweetGenerationTool: Tool = {
                         type: "array",
                         items: {
                             type: "object",
-                            required: ["content", "pattern", "strategy", "angle", "voiceMarkers", "strategyImplementation", "uniquenessMetrics"],
+                            required: [
+                                "content",
+                                "pattern",
+                                "category",
+                                "strategy",
+                                "angle",
+                                "voiceMarkers",
+                                "strategyImplementation",
+                                "uniquenessMetrics"
+                            ],
                             properties: {
                                 content: { type: "string" },
                                 pattern: { type: "string" },
+                                category: {
+                                    type: "string",
+                                    enum: ["culture", "narrative", "technical", "commentary", "hybrid"]
+                                },
                                 strategy: { type: "string" },
                                 angle: { type: "string" },
                                 voiceMarkers: { type: "array", items: { type: "string" } },
                                 strategyImplementation: { type: "string" },
                                 uniquenessMetrics: {
                                     type: "object",
-                                    required: ["patternFreshness", "phraseUniqueness", "structuralDiversity", "overallDistinctiveness"],
+                                    required: [
+                                        "patternFreshness",
+                                        "phraseUniqueness",
+                                        "structuralDiversity",
+                                        "categoryFreshness",
+                                        "overallDistinctiveness"
+                                    ],
                                     properties: {
                                         patternFreshness: { type: "number" },
                                         phraseUniqueness: { type: "number" },
                                         structuralDiversity: { type: "number" },
+                                        categoryFreshness: { type: "number" },
                                         overallDistinctiveness: { type: "number" }
                                     }
                                 }
@@ -226,11 +358,12 @@ export const tweetGenerationTool: Tool = {
                     },
                     differentiation: {
                         type: "object",
-                        required: ["angleUniqueness", "voiceConsistency", "strategyAlignment"],
+                        required: ["angleUniqueness", "voiceConsistency", "strategyAlignment", "categoryDiversity"],
                         properties: {
                             angleUniqueness: { type: "string" },
                             voiceConsistency: { type: "string" },
-                            strategyAlignment: { type: "string" }
+                            strategyAlignment: { type: "string" },
+                            categoryDiversity: { type: "string" }
                         }
                     },
                     uniquenessVerification: {
@@ -244,6 +377,8 @@ export const tweetGenerationTool: Tool = {
                     strategyConnection: { type: "string" }
                 }
             },
+
+            // Final Selection section
             finalSelection: {
                 type: "object",
                 required: ["content", "reasoningChain", "expectedImpact", "qualityChecks", "diversityMetrics"],
@@ -266,10 +401,11 @@ export const tweetGenerationTool: Tool = {
                             },
                             content: {
                                 type: "object",
-                                required: ["perspective", "communityResonance"],
+                                required: ["perspective", "communityResonance", "categoryAlignment"],
                                 properties: {
                                     perspective: { type: "boolean" },
-                                    communityResonance: { type: "boolean" }
+                                    communityResonance: { type: "boolean" },
+                                    categoryAlignment: { type: "boolean" }
                                 }
                             },
                             technical: {
@@ -283,11 +419,12 @@ export const tweetGenerationTool: Tool = {
                             },
                             uniqueness: {
                                 type: "object",
-                                required: ["patternFresh", "phraseUnique", "structureDistinct", "score"],
+                                required: ["patternFresh", "phraseUnique", "structureDistinct", "categoryFresh", "score"],
                                 properties: {
                                     patternFresh: { type: "boolean" },
                                     phraseUnique: { type: "boolean" },
                                     structureDistinct: { type: "boolean" },
+                                    categoryFresh: { type: "boolean" },
                                     score: { type: "number" }
                                 }
                             }
@@ -295,12 +432,169 @@ export const tweetGenerationTool: Tool = {
                     },
                     diversityMetrics: {
                         type: "object",
-                        required: ["patternNovelty", "structuralUniqueness", "phraseOriginality", "overallFreshness"],
+                        required: [
+                            "patternNovelty",
+                            "structuralUniqueness",
+                            "phraseOriginality",
+                            "categoryFreshness",
+                            "overallFreshness"
+                        ],
                         properties: {
                             patternNovelty: { type: "number" },
                             structuralUniqueness: { type: "number" },
                             phraseOriginality: { type: "number" },
+                            categoryFreshness: { type: "number" },
                             overallFreshness: { type: "number" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+
+export const topicAssessmentTool: Tool = {
+    name: "assess_topics",
+    description: "Analyzes current context and recent activity to identify fresh discussion topics",
+    input_schema: {
+        type: "object",
+        required: [
+            "highPriorityTopics",
+            "backupTopics",
+            "analysis"
+        ],
+        properties: {
+            highPriorityTopics: {
+                type: "array",
+                items: {
+                    type: "object",
+                    required: ["topic", "angle", "supportingMetrics", "reasoning", "freshness", "impact", "priority"],
+                    properties: {
+                        topic: { type: "string" },
+                        angle: { type: "string" },
+                        supportingMetrics: { 
+                            type: "array",
+                            items: { type: "string" }
+                        },
+                        reasoning: { type: "string" },
+                        freshness: {
+                            type: "object",
+                            required: ["metricUniqueness", "topicNovelty", "angleOriginality", "overallFreshness"],
+                            properties: {
+                                metricUniqueness: { type: "number" },
+                                topicNovelty: { type: "number" },
+                                angleOriginality: { type: "number" },
+                                overallFreshness: { type: "number" }
+                            }
+                        },
+                        impact: { type: "number" },
+                        priority: { type: "number" }
+                    }
+                }
+            },
+            backupTopics: {
+                type: "array",
+                items: {
+                    type: "object",
+                    required: ["topic", "type", "angle", "reasoning"],
+                    properties: {
+                        topic: { type: "string" },
+                        type: { 
+                            type: "string",
+                            enum: ["character_moment", "observation", "prediction"]
+                        },
+                        angle: { type: "string" },
+                        reasoning: { type: "string" },
+                        lastUsed: { type: "string" }
+                    }
+                }
+            },
+            analysis: {
+                type: "object",
+                required: ["coverage", "freshness", "distribution"],
+                properties: {
+                    coverage: {
+                        type: "object",
+                        required: ["saturatedMetrics", "saturatedTopics", "recommendedRotation"],
+                        properties: {
+                            saturatedMetrics: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    required: ["value", "lastUsed", "useCount", "associatedThemes"],
+                                    properties: {
+                                        value: { type: "string" },
+                                        lastUsed: { type: "string" },
+                                        useCount: { type: "number" },
+                                        associatedThemes: { 
+                                            type: "array",
+                                            items: { type: "string" }
+                                        }
+                                    }
+                                }
+                            },
+                            saturatedTopics: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    required: ["project", "lastDiscussed", "frequency", "associatedMetrics"],
+                                    properties: {
+                                        project: { type: "string" },
+                                        lastDiscussed: { type: "string" },
+                                        frequency: { type: "number" },
+                                        associatedMetrics: {
+                                            type: "array",
+                                            items: { type: "string" }
+                                        }
+                                    }
+                                }
+                            },
+                            recommendedRotation: {
+                                type: "object",
+                                required: ["avoidMetrics", "avoidProjects", "suggestedThemes"],
+                                properties: {
+                                    avoidMetrics: {
+                                        type: "array",
+                                        items: { type: "string" }
+                                    },
+                                    avoidProjects: {
+                                        type: "array",
+                                        items: { type: "string" }
+                                    },
+                                    suggestedThemes: {
+                                        type: "array",
+                                        items: { type: "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    freshness: {
+                        type: "object",
+                        required: ["overallAssessment", "rotationNeeded", "nextBestTiming"],
+                        properties: {
+                            overallAssessment: { type: "string" },
+                            rotationNeeded: { type: "boolean" },
+                            nextBestTiming: {
+                                type: "object",
+                                additionalProperties: { type: "string" }
+                            }
+                        }
+                    },
+                    distribution: {
+                        type: "object",
+                        required: ["recentPatterns", "suggestedNextPattern", "themeBalance"],
+                        properties: {
+                            recentPatterns: {
+                                type: "array",
+                                items: { type: "string" }
+                            },
+                            suggestedNextPattern: { type: "string" },
+                            themeBalance: {
+                                type: "object",
+                                additionalProperties: { type: "number" }
+                            }
                         }
                     }
                 }
