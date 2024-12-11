@@ -352,7 +352,7 @@ export class TwitterPostClient {
 
     private async formatTweets(tweets: Tweet[], title: string): Promise<string> {
         const sortedTweets = [...tweets].sort((a, b) => b.timestamp - a.timestamp);
-        const limitedTweets = sortedTweets.slice(0, 4);
+        const limitedTweets = sortedTweets.slice(0, 10);
         
         return `# ${title}\n\n` +
             limitedTweets
@@ -385,11 +385,10 @@ export class TwitterPostClient {
             const dryRunTweets = await this.client.getCachedDryRunTweets();
 
             if (cachedTimeline || dryRunTweets) {
-                // Combine and sort both real and dry run tweets
                 homeTimeline = [...(cachedTimeline || []), ...(dryRunTweets || [])]
                     .sort((a, b) => b.timestamp - a.timestamp);
             } else {
-                homeTimeline = await this.client.fetchHomeTimeline(4);
+                homeTimeline = await this.client.fetchHomeTimeline(10);
                 await this.client.cacheTimeline(homeTimeline);
             }
 
@@ -403,15 +402,13 @@ export class TwitterPostClient {
                 .sort(() => 0.5 - Math.random())
                 .slice(0, 3);
 
-            const simpleTopics = selectedTopics.join(", ");
-
             const state = await this.runtime.composeState(
                 {
                     userId: this.runtime.agentId,
                     roomId: roomId,
                     agentId: this.runtime.agentId,
                     content: {
-                        text: simpleTopics,
+                        text: selectedTopics.join(", "),
                         action: "",
                     },
                 },
