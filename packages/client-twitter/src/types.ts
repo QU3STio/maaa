@@ -1,243 +1,210 @@
-// types.ts
+// types.ts - Comprehensive update for all response types
 
-// Common interfaces used across both systems
-interface PatternEntry {
+// Shared type definitions to ensure consistency
+export type ContentType = 'news' | 'discussion' | 'development' | 'announcement';
+export type CategoryType = 'information' | 'community' | 'strategic';
+export type TweetVersion = 'A' | 'B' | 'C';
+
+// Base interfaces for common structures
+interface EnvironmentUpdate {
+    type: ContentType;
+    content: string;
+    timestamp: string;
+    impact: number;
+    relevance: string[];
+}
+
+interface MetricData {
+    name: string;
+    value: number;
+    trend: string;
+    timestamp: string;
+}
+
+interface SocialData {
     type: string;
-    frequency: number;
-    lastUsed: string;
-  }
-  
-  // Topic Assessment Types
-  
-  interface ContentAssessmentEntry {
-    topic: string;
-    strategy: string;
-    effectiveness: number;
-    engagementLevel: number;
-    supportingElements: string[];
-  }
-  
-  interface PatternAnalysis {
-    openingStructures: Array<PatternEntry>;
-    sentencePatterns: Array<PatternEntry>;
-    closingTechniques: Array<PatternEntry>;
-    phraseUsage: Array<PatternEntry>;
-  }
-  
-  interface VoiceAnalysis {
-    consistencyScore: number;
-    toneAlignment: number;
-    styleCompliance: number;
-    ruleAdherence: boolean;
-  }
-  
-  interface StrategyTracking {
-    recentUsage: Array<{
-      strategy: string;
-      timestamp: string;
-      postId: string;
-    }>;
-    distribution: Record<string, number>;
-    gaps: string[];
-    rotationNeeded: boolean;
-  }
-  
-  interface TrackingLists {
-    strategies: StrategyTracking;
-    patterns: PatternAnalysis;
-    topics: string[];
-    metrics: string[];
-    projects: string[];
-  }
-  
-  interface ContextAnalysis {
-    contentAssessment: ContentAssessmentEntry[];
-    patternAnalysis: PatternAnalysis;
-    voiceAnalysis: VoiceAnalysis;
-    trackingLists: TrackingLists;
-  }
-  
-  interface OpportunityScores {
-    timeliness: number;
-    characterFit: number;
-    valuePotential: number;
-    developmentPotential: number;
-    uniqueness: number;
-    engagementLikelihood: number;
-    strategyAlignment: number;
-  }
-  
-  interface OpportunityAnalysis {
-    educational: string[];
-    entertainment: string[];
-    inspirational: string[];
-    networking: string[];
-    informational: string[];
-    scores: Record<string, OpportunityScores>;
-  }
-  
-  interface SelectedPackage {
-    strategy: string;
-    reasoning: string;
+    content: string;
+    source: string;
+    timestamp: string;
+    significance: number;
+}
+
+// Updated Topic Assessment Response
+export interface TopicAssessmentResponse {
+    contextAnalysis: {
+        environment: {
+            updates: EnvironmentUpdate[];
+            metrics: Array<{
+                category: string;
+                context: string;
+                metrics: MetricData[];
+            }>;
+            social: SocialData[];
+        };
+        character: {
+            relevantTraits: string[];
+            naturalPerspective: string;
+            authenticValue: string;
+        };
+        recentActivity: {
+            patterns: {
+                contentTypes: string[];
+                voicePatterns: string[];
+                topics: string[];
+                engagementApproaches: string[];
+                timestamp: string;
+            };
+            avoidList: string[];
+        };
+    };
+    opportunityMapping: {
+        identified: Array<{
+            category: CategoryType;
+            value: {
+                primary: string;
+                supporting: string[];
+                uniqueAngle: string;
+            };
+            suitability: {
+                characterFit: number;
+                timeliness: number;
+                freshness: number;
+            };
+        }>;
+        priorityScore: number;
+        narrativeAlignment: string;
+    };
+    strategyDevelopment: {
+        selected: {
+            topic: {
+                main: string;
+                angle: string;
+                perspective: string;
+            };
+            structure: {
+                opening: string;
+                flow: string;
+                close: string;
+            };
+            voice: {
+                elements: string[];
+                tonality: string;
+                authenticity: number;
+            };
+            impact: {
+                intended: string;
+                potential: string;
+                measurement: string;
+            };
+        };
+        avoidList: string[];
+        reasoningPath: string[];
+    };
+    outputRecommendation: {
+        topic: string;
+        strategy: string;
+        execution: {
+            approach: string;
+            guidelines: string[];
+            cautions: string[];
+        };
+    };
+}
+
+// Updated Tweet Generation Response
+export interface TweetGenerationResponse {
+    contextAnalysis: {
+        inputSynthesis: {
+            selectedTopic: string;
+            selectedAngle: string;
+            characterVoice: {
+                traits: string[];
+                rules: string[];
+                examples: string[];
+            };
+            contextualFactors: Array<{
+                type: string;
+                content: string;
+                relevance: number;
+            }>;
+        };
+        contentFramework: {
+            structure: {
+                opening: string;
+                core: string;
+                closing: string;
+            };
+            constraints: {
+                characterLimit: number;
+                avoidList: string[];
+                requiredElements: string[];
+            };
+        };
+    };
+    strategyDevelopment: {
+        variations: Array<{
+            version: TweetVersion;
+            text: string;
+            rationale: string;
+        }>;
+        selection: {
+            chosenVersion: TweetVersion;
+            justification: string;
+        };
+    };
+    contentValidation: {
+        factualAccuracy: string;
+        voiceAuthenticity: string;
+        contextAlignment: string;
+        uniqueness: string;
+    };
+    outputGeneration: {
+        finalTweet: {
+            text: string;
+            version: TweetVersion;
+        };
+        metadata: {
+            characterCount: number;
+            contextualReferences: string[];
+            avoidedElements: string[];
+        };
+    };
+}
+
+// Helper types for validation and data extraction
+export interface AssessmentMetadata {
     topic: string;
     angle: string;
-    valueProposition: string;
-    implementationAngle: string;
-    supportingElements: string[];
-    contextRequirements: string[];
-    developmentPotential: string[];
-    engagementHooks: string[];
-  }
-  
-  interface AvoidList {
-    strategies: string[];
-    patterns: string[];
-    topics: string[];
-    phrases: string[];
-    metrics: string[];
-    structures: string[];
-    openings: string[];
-  }
-  
-  interface Guidelines {
-    voiceDirection: string;
-    toneGuidance: string;
-    patternSuggestions: string[];
-    hookOptions: string[];
-    structureRecommendations: string[];
-    metricUsageGuidance: string;
-    engagementApproaches: string[];
-    closingTechniques: string[];
-  }
-  
-  interface StrategySelection {
-    selectedPackage: SelectedPackage;
-    avoidList: AvoidList;
-    guidelines: Guidelines;
-  }
-  
-  export interface TopicAssessmentResponse {
-    contextAnalysis: ContextAnalysis;
-    opportunityAnalysis: OpportunityAnalysis;
-    strategySelection: StrategySelection;
-  }
-  
-  // Tweet Generation Types
-  
-  interface HookAnalysis {
-    valueEntry: string;
-    patternUsed: string;
-    voiceAlignment: string;
-  }
-  
-  interface MessageCore {
-    valueDelivery: string;
-    supportingElements: string[];
-    characterVoice: string;
-  }
-  
-  interface StrategicClose {
-    impactElement: string;
-    engagementHook: string;
-    memoryElement: string;
-  }
-  
-  interface TweetMetrics {
-    technicalAccuracy: boolean;
-    contextClarity: boolean;
-    timeRelevance: boolean;
-  }
-  
-  interface StrategyAlignment {
-    valueDelivery: boolean;
-    patternFreshness: number;
-    engagementPotential: number;
-  }
-  
-  interface CharacterTruth {
-    voiceConsistency: number;
-    styleCompliance: boolean;
-    perspectiveAlignment: boolean;
-  }
-  
-  interface TweetVariation {
-    content: string;
-    hookAnalysis: HookAnalysis;
-    messageCore: MessageCore;
-    strategicClose: StrategicClose;
-    metrics: TweetMetrics;
-    strategyAlignment: StrategyAlignment;
-    characterTruth: CharacterTruth;
-  }
-  
-  interface TechnicalChecks {
-    accuracy: boolean;
-    clarity: boolean;
-    relevance: boolean;
-  }
-  
-  interface StrategicChecks {
-    implementation: boolean;
-    valueDelivery: boolean;
-    engagement: number;
-  }
-  
-  interface CharacterChecks {
-    voiceMatch: boolean;
-    styleMatch: boolean;
-    authenticity: number;
-  }
-  
-  interface QualityChecks {
-    technical: TechnicalChecks;
-    strategic: StrategicChecks;
-    character: CharacterChecks;
-  }
-  
-  interface QualityFactors {
-    technicalScore: number;
-    strategyScore: number;
-    characterScore: number;
-    valueScore: number;
-    engagementScore: number;
-  }
-  
-  interface Differentiation {
-    patternUniqueness: number;
-    structuralFreshness: number;
-    voiceStrength: number;
-    valueClarity: number;
-  }
-  
-  interface Impact {
-    conversationPotential: number;
-    developmentPossibilities: string[];
-    communityValue: string;
-    strategyAdvancement: string;
-  }
-  
-  interface SelectionReasoning {
-    qualityFactors: QualityFactors;
-    differentiation: Differentiation;
-    impact: Impact;
-  }
-  
-  interface TweetAnalysis {
-    valueDelivery: string;
-    engagement: string;
-    impact: string;
-  }
-  
-  interface SelectedTweet {
-    content: string;
-    strategy: string;
-    pattern: string;
-    analysis: TweetAnalysis;
-  }
-  
-  export interface TweetGenerationResponse {
-    variations: TweetVariation[];
-    qualityChecks: QualityChecks;
-    selectionReasoning: SelectionReasoning;
-    selectedTweet: SelectedTweet;
-  }
+    voice: {
+        elements: string[];
+        tonality: string;
+        authenticity: number;
+    };
+    context: {
+        updates: EnvironmentUpdate[];
+        metrics: Array<{
+            category: string;
+            context: string;
+            metrics: MetricData[];
+        }>;
+        social: SocialData[];
+    };
+    guidelines: string[];
+    cautions: string[];
+}
+
+export interface TweetGenerationMetadata {
+    timestamp: number;
+    assessment: AssessmentMetadata;
+    tweetResponse: {
+        finalTweet: {
+            text: string;
+            version: TweetVersion;
+        };
+        metadata: {
+            characterCount: number;
+            contextualReferences: string[];
+            avoidedElements: string[];
+        };
+    };
+}

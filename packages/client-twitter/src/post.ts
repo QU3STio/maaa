@@ -9,8 +9,14 @@ import {
 } from "@ai16z/eliza";
 import { elizaLogger } from "@ai16z/eliza";
 import { ClientBase } from "./base";
-import { TweetGenerationResponse, TopicAssessmentResponse } from "./types";
+import { 
+    TweetGenerationResponse, 
+    TopicAssessmentResponse, 
+    AssessmentMetadata,
+    TweetGenerationMetadata 
+} from "./types";
 import { tweetGenerationTool, topicAssessmentTool } from "./tools";
+import { ResponseValidator, ValidationError } from "./validation";
 import Anthropic from "@anthropic-ai/sdk";
 import {
     twitterSimplePostTemplate,
@@ -158,7 +164,8 @@ export class TwitterPostClient {
     private async assessTopics(): Promise<TopicAssessmentResponse> {
         const homeTimeline = await this.client.getCachedTimeline() || [];
         const dryRunTweets = await this.client.getCachedDryRunTweets() || [];
-        const allTweets = [...homeTimeline, ...dryRunTweets].sort((a, b) => b.timestamp - a.timestamp);
+        const allTweets = [...homeTimeline, ...dryRunTweets]
+            .sort((a, b) => b.timestamp - a.timestamp);
 
         const formattedHomeTimeline = await this.formatTweets(
             allTweets,
@@ -201,17 +208,9 @@ export class TwitterPostClient {
         const response = await this.anthropicClient.messages.create({
             model: "claude-3-5-sonnet-20241022",
             max_tokens: 4096,
-            messages: [
-                {
-                    role: "user",
-                    content: context
-                }
-            ],
+            messages: [{ role: "user", content: context }],
             tools: [topicAssessmentTool],
-            tool_choice: {
-                type: "tool",
-                name: "assess_topics"
-            }
+            tool_choice: { type: "tool", name: "assess_topics" }
         });
 
         elizaLogger.info("Topic assessment prompt", context);
@@ -219,105 +218,123 @@ export class TwitterPostClient {
 
         for (const content of response.content) {
             if (content.type === "tool_use" && content.name === "assess_topics") {
-                return content.input as TopicAssessmentResponse;
+                const assessment = content.input as any;
+                
+                if (!ResponseValidator.validateTopicAssessment(assessment)) {
+                    throw new ValidationError("Invalid topic assessment response structure");
+                }
+
+                return assessment;
             }
         }
 
-        throw new Error("No valid topic assessment in response");
+        throw new ValidationError("No valid topic assessment in response");
     }
 
     private async generateChainOfThoughtTweet(): Promise<string> {
-
-        const topicAssessment = await this.assessTopics();
-        
-        const selectedTopic = {
-            topic: topicAssessment.strategySelection.selectedPackage.topic,
-            angle: topicAssessment.strategySelection.selectedPackage.angle,
-            reasoning: topicAssessment.strategySelection.selectedPackage.reasoning,
-            freshness: {
-                topicNovelty: topicAssessment.opportunityAnalysis.scores[topicAssessment.strategySelection.selectedPackage.topic]?.timeliness,
-                angleOriginality: topicAssessment.opportunityAnalysis.scores[topicAssessment.strategySelection.selectedPackage.topic]?.strategyAlignment,
-                patternFreshness: topicAssessment.opportunityAnalysis.scores[topicAssessment.strategySelection.selectedPackage.topic]?.uniqueness,
-                developmentPotential: topicAssessment.opportunityAnalysis.scores[topicAssessment.strategySelection.selectedPackage.topic]?.developmentPotential
-            }
-        };
-    
-        // Fetch and format timeline
-        const homeTimeline = await this.client.getCachedTimeline() || [];
-        const dryRunTweets = await this.client.getCachedDryRunTweets() || [];
-        const allTweets = [...homeTimeline, ...dryRunTweets].sort((a, b) => b.timestamp - a.timestamp);
-    
-        const formattedHomeTimeline = await this.formatTweets(
-            allTweets,
-            `${this.runtime.character.name}'s Home Timeline`
-        );
-    
-        const state = await this.runtime.composeState(
-            {
-                userId: this.runtime.agentId,
-                roomId: stringToUuid("twitter_generate_room-" + this.client.profile.username),
-                agentId: this.runtime.agentId,
-                content: {
-                    text: selectedTopic.topic,
-                    action: "",
+        try {
+            const topicAssessment = await this.assessTopics();
+            const assessmentData = ResponseValidator.extractAssessmentData(topicAssessment);
+            
+            // Map assessment data to tweet generation state
+            const tweetGenerationState = {
+                selectedTopic: assessmentData.topic,
+                selectedAngle: assessmentData.angle,
+                characterVoice: {
+                    traits: assessmentData.voice.elements,
+                    rules: assessmentData.guidelines,
+                    examples: topicAssessment.contextAnalysis.recentActivity.patterns.contentTypes
                 },
-            },
-            {
-                twitterUserName: this.client.profile.username,
-                timeline: formattedHomeTimeline,
-                selectedTopic: `Topic: ${selectedTopic.topic}\nAngle: ${selectedTopic.angle}\nReasoning: ${selectedTopic.reasoning}${
-                    selectedTopic.freshness ? 
-                    `\nFreshness: ${JSON.stringify(selectedTopic.freshness)}` : 
-                    ''
-                }`,
-                selectedStrategy: topicAssessment.strategySelection.selectedPackage.strategy,
-                valueProposition: topicAssessment.strategySelection.selectedPackage.valueProposition,
-                avoidList: JSON.stringify(topicAssessment.strategySelection.avoidList),
-                supportingElements: topicAssessment.strategySelection.selectedPackage.supportingElements.join('\n'),
-                developmentGuides: topicAssessment.strategySelection.guidelines.patternSuggestions.join('\n'),
-                patternSuggestions: topicAssessment.strategySelection.guidelines.patternSuggestions.join('\n')
-            }
-        );
-    
-        const context = composeContext({
-            state,
-            template: tweetGenerationTemplate,
-        });
-    
-        const response = await this.anthropicClient.messages.create({
-            model: "claude-3-5-sonnet-20241022",
-            max_tokens: 8192,
-            messages: [
+                contextualFactors: assessmentData.context.updates.map(update => ({
+                    type: update.type,
+                    content: update.content,
+                    relevance: update.impact
+                })),
+                avoidList: assessmentData.cautions
+            };
+
+            // Fetch and format timeline
+            const homeTimeline = await this.client.getCachedTimeline() || [];
+            const dryRunTweets = await this.client.getCachedDryRunTweets() || [];
+            const allTweets = [...homeTimeline, ...dryRunTweets]
+                .sort((a, b) => b.timestamp - a.timestamp);
+            
+            const formattedHomeTimeline = await this.formatTweets(
+                allTweets,
+                `${this.runtime.character.name}'s Home Timeline`
+            );
+
+            const state = await this.runtime.composeState(
                 {
-                    role: "user",
-                    content: context
+                    userId: this.runtime.agentId,
+                    roomId: stringToUuid("twitter_generate_room-" + this.client.profile.username),
+                    agentId: this.runtime.agentId,
+                    content: {
+                        text: tweetGenerationState.selectedTopic,
+                        action: "",
+                    },
+                },
+                {
+                    twitterUserName: this.client.profile.username,
+                    timeline: formattedHomeTimeline,
+                    ...tweetGenerationState,
                 }
-            ],
-            tools: [tweetGenerationTool],
-            tool_choice: {
-                type: "tool",
-                name: "generate_tweet"
+            );
+
+            const context = composeContext({
+                state,
+                template: tweetGenerationTemplate,
+            });
+
+            const response = await this.anthropicClient.messages.create({
+                model: "claude-3-5-sonnet-20241022",
+                max_tokens: 8192,
+                messages: [{ role: "user", content: context }],
+                tools: [tweetGenerationTool],
+                tool_choice: { type: "tool", name: "generate_tweet" }
+            });
+
+            let tweetResponse: TweetGenerationResponse | null = null;
+            
+            for (const content of response.content) {
+                if (content.type === "tool_use" && content.name === "generate_tweet") {
+                    const tweetData = content.input as TweetGenerationResponse;
+                    if (ResponseValidator.validateTweetGeneration(tweetData)) {
+                        tweetResponse = tweetData;
+                        break;
+                    }
+                }
             }
-        });
-    
-        elizaLogger.info("Chain of thought prompt", context);
-        elizaLogger.info("Chain of thought response", response);
-    
-        let tweetData: TweetGenerationResponse | null = null;
-    
-        for (const content of response.content) {
-            if (content.type === "tool_use" && content.name === "generate_tweet") {
-                tweetData = content.input as TweetGenerationResponse;
-                break;
+
+            if (!tweetResponse?.outputGeneration?.finalTweet?.text) {
+                throw new ValidationError("No valid tweet content in response");
             }
+
+            const metadata: TweetGenerationMetadata = {
+                timestamp: Date.now(),
+                assessment: assessmentData,
+                tweetResponse: tweetResponse.outputGeneration
+            };
+
+            // Cache metadata for future reference
+            await this.runtime.cacheManager.set(
+                `twitter/${this.client.profile.username}/last_tweet_metadata`,
+                metadata
+            );
+
+            return tweetResponse.outputGeneration.finalTweet.text;
+
+        } catch (error) {
+            elizaLogger.error("Error in chain of thought tweet generation:", {
+                error: error instanceof ValidationError ? error.message : 'Unknown error',
+                context: error instanceof ValidationError ? error.context : undefined,
+                stack: error instanceof Error ? error.stack : undefined
+            });
+            
+            // Fall back to simple tweet generation
+            elizaLogger.info("Falling back to simple tweet generation");
+            return this.generateSimpleTweet();
         }
-    
-        if (!tweetData || !tweetData.selectedTweet?.content) {
-            elizaLogger.error("Invalid tweet data:", { tweetData });
-            throw new Error("No valid tweet data in response");
-        }
-    
-        return tweetData.selectedTweet.content;
     }
 
     private async generateNewTweet() {

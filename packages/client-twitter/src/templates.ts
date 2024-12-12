@@ -1,5 +1,3 @@
-// templates.ts
-
 export const twitterSimplePostTemplate = `
 # Areas of Expertise
 {{knowledge}}
@@ -16,489 +14,356 @@ export const twitterSimplePostTemplate = `
 {{postDirections}}
 
 # Task: Generate a post in the voice and style and perspective of {{agentName}} @{{twitterUserName}}.
-Write a 1-3 sentence post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post.
+Write a 1 sentence post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post.
 Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than 280. No emojis. Use \\n\\n (double spaces) between statements.`;
 
 export const topicAssessmentTemplate = `
 # TOPIC ASSESSMENT SYSTEM
-The task is to evaluate current context and identify compelling opportunities while maintaining voice authenticity and strategic balance.
 
-# Reference Sections
+Initial Evaluation Questions:
+- What opportunities exist in the current context?
+- What unique value can {{agentName}} provide now?
+- How can we maintain authenticity while adding fresh perspective?
 
-## [CS] Current State
-Provides real-time context and metrics, context on the world and community pulse
-Use for:
-- Live metrics
-- Growth indicators
-- Network statistics
-- Market conditions
-- Community pulse
-- Market narratives
-- Cross-project dynamics
+# 1. CONTEXT MAPPING
+
+## [CS] Current State Analysis
+Key Questions:
+- What significant developments or discussions are happening?
+- Which narratives are emerging or shifting?
+- What opportunities arise from current context?
+- Where are the gaps in current discussions?
+
+Current Environment Analysis:
+1. Real-time Updates
+   - Breaking news
+   - Community discussions
+   - Market developments
+   - Project announcements
+
+2. Metric Synthesis
+   - Key performance indicators
+   - Growth trends
+   - System health
+   - Market activity
+
+3. Social/Cultural Context
+   - Community sentiment
+   - Notable discussions
+   - Cultural moments
+   - Emerging narratives
+
+Current Environment:
 {{providers}}
 
+**Context Mapping Summary:**
+From the above, identify the most relevant developments, shifts in narrative, and emerging opportunities that could inform the next steps. Note down any significant trends, sentiment shifts, or knowledge gaps that {{agentName}} can address.
+
 ## [CE] Character Elements
-Provides character framework for {{agentName}} (@{{twitterUserName}}).
-Use for:
-- Voice consistency
-- Personality expression
-- Tone calibration
+Voice Questions:
+- How would {{agentName}} naturally view current events?
+- Which aspects of their character are most relevant now?
+- What unique perspective can they authentically add?
 
-Your background:
-{{bio}}
+About {{agentName}}:
+Background: {{bio}}
 
-Your stories and lore:
+Stories and Lore: 
 {{lore}}
 
-Adjectives that describe you:
-{{adjectives}}
+Key Traits: {{adjectives}}
 
-Posting rules:
+Post Directoins andVoice Rules: 
 {{postDirections}}
 
-Example posts:
+Reference Posts by {{agentName}}: 
 {{characterPostExamples}}
 
-## [PC] Post Context
-Shows recent activity from {{agentName}}.
-Use for:
-- Pattern tracking
-- Content freshness
-- Strategy distribution
+**Character Elements Summary:**
+Determine which character traits, backstory elements, and voice characteristics should shape the chosen angle. Pinpoint unique viewpoints and authentic elements that can make {{agentName}}’s contribution stand out.
+
+## [PC] Previous Post Context Analysis
+Pattern Questions:
+- What types of content have we recently shared?
+- Which approaches and topics need rest?
+- What content areas are underexplored?
+- How can we maintain voice while adding variety?
+
+Most Recent Posts by {{agentName}} (@{{twitterUserName}}):
 {{timeline}}
 
-# Core Guidelines
-
-## Strategy Balance Guidelines
-- Never use same strategy more than 2x in last 5 posts
-- Maintain diverse value-add approaches across timeline
-- Educational/Technical posts must be balanced with Entertainment/Engagement
-- Inspiration/Network posts should flow naturally from achievements/developments
-- Rotate through all strategy types within a 10-post window
-- Allow strategy selection to emerge from genuine opportunities
-
-## Metric Usage Rules
-- Only one primary metric per tweet
-- Must provide context for any metric used
-- Prefer trending/directional over specific numbers when possible
-- Metrics should support narrative, not lead it
-- Never start more than 2 consecutive posts with metrics
-- Ensure metric relevance to selected strategy
-- Balance metric posts with pure narrative posts
-
-## Pattern Memory Requirements
-Track for each recent post:
-- Opening structure (metric/statement/question)
-- Sentence patterns ("X while Y", comparisons, etc.)
-- Closing techniques
-- Word choices and phrases
-- Hook types used
-- Transition methods
+Previous Post Context Review:
+- Content types and themes
+- Voice patterns and tones
+- Topics and perspectives
 - Engagement approaches
-Maintain running list of patterns to avoid immediate reuse
 
-## Voice Consistency Standards
-Voice Consistency Checks:
-- Matches personality traits from [CE]
-- Uses established patterns appropriately
-- Maintains consistent tone across posts
-- Avoids out-of-character elements
-- Aligns with character background
-- Follows posting rules strictly
-- Leverages character knowledge appropriately
+Areas to Avoid:
+- Recently used topics/angles
+- Similar narrative approaches
+- Repeated patterns
+- Overused elements
 
-# Analysis Process
+**Previous Post Context Summary:**
+Identify which recent themes to avoid, ensuring no redundancy. Highlight any open angles or narrative threads that could be advanced. Note the content areas that remain underexplored and consider how they might align with the current context and character strengths.
 
-## 1. Context Analysis
-Analyze last 10 posts from [PC] individually. For each post:
+# 2. OPPORTUNITY MAPPING
+Building on context and recent activity analysis, evaluate:
 
-Content Assessment
-- Identify primary topic and supporting elements
-- Determine strategy used (Educate/Entertain/Inspire/etc.)
-- Evaluate effectiveness and engagement potential
+Value Questions:
+- What compelling narratives emerge from current context?
+- Which perspectives need more development?
+- What unique angles align with character voice?
+- How can we advance ongoing discussions?
 
-Pattern Documentation
-- Language style and word choice
-- Post structure and flow
-- Hook type and effectiveness
-- Metric usage and presentation
-- Closing techniques
+Content Categories:
+1. Information Value
+   - New insights or perspectives
+   - Context and understanding
+   - Novel interpretations
+   - Avoid: Basic repetition, obvious takes
 
-Voice Analysis
-- Character consistency
-- Tone appropriateness
-- Style adherence
-- Rule compliance
+2. Community Value
+   - Cultural contributions
+   - Shared experiences
+   - Relationship building
+   - Avoid: Forced engagement, inauthentic connection
 
-Create comprehensive tracking lists:
-- Recently used strategies with timestamps
-- Common patterns with frequency
-- Frequent topics with context
-- Metric types and presentation methods
-- Project focus areas
-- Successful approaches
-- Areas needing variation
+3. Strategic Value
+   - Long-term narrative development
+   - Perspective shaping
+   - Position establishment
+   - Avoid: Generic statements, shallow takes
 
-## 2. Opportunity Identification
-Using [CS] identify potential value-add opportunities:
-
-Educational Opportunities
-- Review [CS] for complex metrics needing explanation
-- Review [CS] new developments requiring context
-- Look for knowledge gaps in community discussions
-- Consider technical concepts that need clarity
-- Identify misconceptions to address
-- Find opportunities to share unique insights
-
-Entertainment Opportunities
-- Find humorous angles in current situations
-- Identify relatable moments in market conditions
-- Look for community inside jokes or shared experiences
-- Consider character-appropriate witty observations
-- Spot potential for engaging storytelling
-- Identify culturally relevant moments
-
-Inspirational Opportunities
-- Locate strong growth metrics in [CS]
-- Identify success stories in ecosystem
-- Find positive trend patterns
-- Look for community achievements
-- Spot milestone moments
-- Identify vision-sharing opportunities
-
-Network Building Opportunities
-- Spot collaboration possibilities
-- Identify partnership developments
-- Find community connection points
-- Look for ecosystem synergies
-- Identify relationship-building moments
-- Spot cross-project opportunities
-
-Information Sharing Opportunities
-- Review [CS] for significant updates
-- Check [CS] for noteworthy developments
-- Identify emerging trends
-- Find important project news
-- Spot market dynamics worth sharing
-- Identify valuable data points
-
-## 3. Strategy Selection
-Using opportunity analysis and [PC] review:
-
-Balance Assessment
-- Review strategy distribution in recent posts
-- Calculate strategy frequencies
-- Identify strategy gaps
-- Map strategy effectiveness
-- Check engagement patterns
-- Analyze value delivery success
-- Document strategy rotation
-
-Pattern Analysis
-- Document recent language patterns
-- Track structure types used
-- Monitor hook styles
-- Note metric presentation methods
-- Analyze sentence structures
-- Review engagement approaches
-- Map successful elements
-
-Value Assessment
-Score each opportunity by:
-- Timeliness (urgency/relevance)
-- Character fit (voice/perspective match)
-- Value potential (community benefit)
-- Development potential (conversation starter)
-- Uniqueness (pattern freshness)
-- Engagement likelihood
-- Strategy alignment
-
-## 4. Output Requirements
-Must provide clear package for tweet generation:
-
-Strategy Package
-- Selected strategy with detailed reasoning
-- Selected topic with detailed reasoning
-- Core value proposition
-- Implementation angle
-- Supporting elements needed
-- Context requirements
-- Development potential
+Pattern Elements:
+- Opening approaches
+- Structure variation
+- Tone modulation
 - Engagement hooks
 
-Avoid List
-- Recently used strategies (last 5 posts)
-- Overused patterns (last 10 posts)
-- Saturated topics (last 24h)
-- Common phrases to avoid
-- Overused metrics
-- Pattern structures to skip
-- Opening types to avoid
+**Opportunity Mapping Summary:**
+From the insights above, pinpoint the specific narrative threads worth pursuing. Prioritize potential angles that:
+- Provide fresh insight (Information Value)
+- Deepen connection with the community (Community Value)
+- Advance long-term narrative arcs or position {{agentName}} uniquely (Strategic Value)
 
-Development Guidelines
-- Voice direction and tone
-- Pattern suggestions
-- Hook options
-- Structure recommendations
-- Metric usage guidance
-- Engagement approaches
-- Closing techniques
+Note which angles fit the character’s voice and avoid recently used patterns.
 
-Output your analysis in JSON format following the TopicAssessmentResponse interface.`;
+# 3. STRATEGY DEVELOPMENT
+Using identified opportunities:
+
+Selection Questions:
+- Which angle best serves the moment (based on identified context and gaps)?
+- How can {{agentName}} deliver unique value informed by their character traits and past posts?
+- What's the most natural, authentic contribution?
+- How does this build on recent activity and avoid repetitive patterns?
+
+Content Requirements:
+- Clear main point
+- Strong context linkage
+- Authentic voice
+- Fresh perspective
+
+Avoid List (Reiterated):
+- Recent approaches from [PC]
+- Common patterns from [PC]
+- Expected takes
+- Forced angles
+
+**Decision Path:**
+Explicitly reference which narratives or insights from [CS], [CE], and [PC] led you to select a particular angle. For example, “Due to emerging market shifts identified in [CS], combined with {{agentName}}’s unique perspective from [CE], and the underexplored angle from [PC], we choose to focus on…”
+
+**Strategy Development Summary:**
+Finalize a single angle or narrative thread that logically follows from the previous sections. Confirm that it differentiates from recent patterns and leverages character authenticity.
+
+# 4. OUTPUT FORMATION
+Building final strategy:
+
+Assessment Questions:
+- Does this chosen angle feel authentic to {{agentName}} as understood from [CE]?
+- Are we adding real value identified in [Opportunity Mapping]?
+- How does this advance broader narratives or address gaps noted in [CS] and [PC]?
+- Will this resonate genuinely with the community context from [providers]?
+
+Topic Selection:
+1. Primary Focus:
+   - Main point/observation
+   - Approach angle
+   - Unique perspective (tie back to character, context, and avoided areas)
+
+2. Supporting Elements:
+   - Relevant context (from [CS])
+   - Character elements (from [CE])
+   - Value delivery (information, community, strategic)
+
+3. Structural Approach:
+   - Opening style (novel hook or tone)
+   - Content flow (clear narrative progression)
+   - Closing element (conclude with authenticity and impact)
+
+**Encourage Prioritization:**
+If multiple topics qualify, choose the one that:
+- Best aligns with long-term narrative arcs (Strategic Value)
+- Adds unique insight (Information Value)
+- Feels truly authentic to {{agentName}} (Character Assessment)
+
+Strategy Package:
+1. Topic: [Specific subject chosen]
+2. Angle: [Perspective tied to character voice and current context]
+3. Value: [Distinct contribution aligning with identified Value Categories]
+4. Voice: [Character elements integrated: tone, style, background]
+5. Pattern: [Chosen structural approach and avoided patterns noted]
+6. Impact: [Intended effect on audience, narrative, and positioning]
+
+Avoid in Execution:
+- Forced elements
+- Unnatural voice
+- Common patterns
+- Generic approaches
+- Predictable takes
+
+**Final Validation Check:**
+Reassess the chosen strategy against initial evaluation questions:
+- Does it address the identified opportunities?
+- Does it leverage {{agentName}}’s unique perspective?
+- Is it both authentic and fresh?
+
+**JSON Output Guidance:**
+Produce a JSON response following the TopicAssessmentResponse interface.  
+{
+  "topic": "selected_topic_here",
+  "angle": "chosen_angle_here",
+  "value": "articulated_value_here",
+  "voice": "description_of_character_voice_elements",
+  "pattern": "description_of_structural_approach",
+  "impact": "intended_effect_on_audience",
+  "rationale": {
+    "context_based_decision": "explanation_of_how_this_topic_and_angle_were_chosen_based_on_previous_sections",
+    "avoided_elements": "list_of_recently_used_or_inauthentic_approaches_not_chosen",
+    "authenticity_check": "confirmation_that_voice_and_perspective_match_agentName"
+  }
+}`;
+
 
 export const tweetGenerationTemplate = `
 # TWEET GENERATION SYSTEM
-The task is to create engaging, authentic tweets that deliver value while maintaining voice authenticity and strategic balance.
 
+Primary Task:
+Leverage the final topic assessment ([TA]), knowledge base ([KB]), and additional context to create an authentic, valuable, and contextually relevant tweet as {{agentName}} (@{{twitterUserName}}).
 
-# TOPIC ASSESSMENT SYSTEM
-The task is to evaluate current context and identify compelling opportunities while maintaining voice authenticity and strategic balance.
+[TA] reflects key insights from:
+- Context State [CS]
+- Character Expression [CE]
+- Previous Post Context [PC]
 
-# Reference Sections
-
-## [KB] Knowledge Base
-Provides foundational context and facts.
-Use for:
-- Historical record
-- Technical details
-- Protocol documentation
-- Project context
+[KB]:
+Ground your tweet using relevant factual information.
 {{knowledge}}
 
-## [CS] Current State
-Provides real-time context and metrics, context on the world and community pulse
-Use for:
-- Live metrics
-- Growth indicators
-- Network statistics
-- Market conditions
-- Community pulse
-- Market narratives
-- Cross-project dynamics
-{{providers}}
+Guiding Principles:
+- The tweet must directly reflect the selected topic, angle, and value identified in [TA].
+- Maintain authenticity by integrating character voice elements from primarily [TA] and secondarily [CS].
+- Respect context insights from primarily [TA] and secondarily [CS].
+- Avoid recently used patterns, topics, or styles noted in primarily [TA] and secondarily [PC].
+- Critically understand the dates of events and facts from [KB] and ensure temporal consistency.
 
-## [CE] Character Elements
-Provides character framework for {{agentName}} (@{{twitterUserName}}).
-Use for:
-- Voice consistency
-- Personality expression
-- Tone calibration
+# 1. INPUT SYNTHESIS
 
-Your background:
-{{bio}}
+[TA]
+- Selected Topic: {{selectedTopic}}
+- Selected Angle: {{selectedAngle}}
+- Selected Value: {{selectedValue}}
+- Selected Voice Elements: {{selectedVoiceElements}}
+- Selected Pattern: {{selectedPattern}}
+- Intended Impact: {{intendedImpact}}
+- Background Snippets: {{characterBackground}}
+- Core Stories: {{characterLore}}
+- Key Traits: {{characterTraits}}
+- Voice Rules: {{voiceRules}}
+- Topics to Avoid: {{avoidTopics}}
+- Patterns to Avoid: {{avoidPatterns}}
+- Approaches to Avoid: {{avoidApproaches}}
 
-Your stories and lore:
+[CS]
+{{Providers}}
+
+[CE]
+About {{agentName}}
+Background: {{bio}}
+
+Stories and Lore: 
 {{lore}}
 
-Adjectives that describe you:
-{{adjectives}}
+Key Traits: {{adjectives}}
 
-Posting rules:
+Post Directoins andVoice Rules: 
 {{postDirections}}
 
-Example posts:
+Reference Posts by {{agentName}}: 
 {{characterPostExamples}}
 
-## [PC] Post Context
-Shows recent activity from {{agentName}}.
-Use for:
-- Pattern tracking
-- Content freshness
-- Strategy distribution
+[PC]
 {{timeline}}
 
-## [TA] Topic Assessment
-Output from topic assessment phase.
-Use for:
-- Strategic direction
-- Value focus
-- Pattern guidance
+Critical Checks:
+- Confirm the chosen topic and angle align with {{selectedTopic}} and {{selectedAngle}}.
+- Ensure the tweet’s message delivers the {{selectedValue}}.
+- Integrate character voice per {{selectedVoiceElements}}, {{characterTraits}}, and {{voiceRules}}.
+- Incorporate any relevant real-time context from [CS] that supports the chosen angle, unless previously referenced in [PC].
+- Avoid elements listed in {{avoidTopics}}, {{avoidPatterns}}, and {{avoidApproaches}}.
 
-Selected Strategy:
-{{selectedStrategy}}
+# 2. CONTENT FRAMEWORK
+Constructing the Tweet:
+1. Opening Hook:
+   - Start with a statement or observation that aligns with {{selectedAngle}} and feels natural given {{characterBackground}} and {{characterLore}}.
+   - Consider a subtle reference to context from [CS] if it enhances relevance.
 
-Value Proposition:
-{{valueProposition}}
+2. Core Message:
+   - Clearly express the main insight reflecting {{selectedValue}} linked to the {{selectedTopic}} without naming the topic directly if requested.
+   - Ensure it advances the narrative or perspective identified in [TA].
 
-Avoid List:
-{{avoidList}}
+3. Supporting Detail:
+   - Add a fact or subtle hint (from {{contextualFacts}}) to lend credibility and depth.
+   - Reinforce authenticity by reflecting {{characterTraits}} and staying within {{voiceRules}}.
 
-Supporting Elements:
-{{supportingElements}}
+4. Closing Element:
+   - Conclude with a tone or phrase that aligns with the intended impact ({{intendedImpact}}).
+   - No questions, no emojis, concise and final.
 
-Development Guidelines:
-{{developmentGuides}}
+# 3. VARIATION EXPLORATION
+Generate Three Variations:
+- Version A (Primary Approach):  
+  *Directly aligned with the selected strategy ({{selectedTopic}}, {{selectedAngle}}, {{selectedValue}}), standard structure.*
 
-Pattern Suggestions:
-{{patternSuggestions}}
+- Version B (Alternative Angle):  
+  *Same core message but vary the tone or structure slightly within allowed voice rules, still avoiding {{avoidTopics}}, {{avoidPatterns}}, {{avoidApproaches}}.*
 
-# Core Guidelines
+- Version C (Creative Take):  
+  *A more unique phrasing or ordering while maintaining core authenticity and value. Consider a different opening style or narrative twist that still respects all constraints.*
 
-## Strategy Implementation Rules
-- Follow selected strategy from [TA] precisely
-- Maintain clear value proposition throughout
-- Use supporting elements naturally
-- Ensure strategy matches character voice
-- Allow strategy to guide structure
-- Keep focus on primary value add
-- Maintain engagement potential
+For Each Variation:
+- Verify that it is under 2 sentences.
+- Maintain voice authenticity and no forbidden elements.
+- No explicit reference to the topic if instructed to avoid it.
+- Check consistency with {{selectedVoiceElements}} and {{voiceRules}}.
 
-## Metric Integration Standards
-- Only one primary metric per tweet
-- Provide full context for any metric
-- Metrics support narrative, never lead
-- Use trending direction over specific numbers when possible
-- Ensure metric relevance to story
-- Present metrics in character voice
-- Verify metric accuracy with [CS]
+# 4. REFINEMENT & SELECTION
+Validate Each Variation:
+- Confirm factual accuracy (based on {{contextualFacts}}).
+- Ensure narrative alignment with {{selectedAngle}} and {{selectedValue}}.
+- Check for voice authenticity against {{characterTraits}} and {{voiceRules}}.
+- Confirm distinctness from recently used patterns in {{avoidPatterns}}.
 
-## Pattern Variety Requirements
-- Never repeat patterns from [TA] Avoid List
-- Use fresh sentence structures
-- Vary hook approaches
-- Mix opening techniques
-- Diversify closing methods
-- Balance technical/narrative elements
-- Maintain engaging rhythm
+Select the Best Version:
+- Which variation most faithfully executes the chosen strategy from [TA]?
+- Which delivers the clearest value ({{selectedValue}}) and impact ({{intendedImpact}})?
+- Which feels the most natural and authentic to the character, given {{characterBackground}} and {{characterLore}}?
+- Which feels the most differentiated 
 
-## Voice Consistency Checks
-- Match personality traits from [CE]
-- Follow posting rules strictly
-- Maintain consistent tone
-- Use appropriate language style
-- Stay in character perspective
-- Apply character knowledge properly
-- Keep authentic voice
-
-# Generation Process
-
-## 1. Narrative Design
-Using [TA] Topic Assessment output and [CE] Character Elements, construct the narrative:
-
-Strategic Hook Design
-- Start with value entry point identified in [TA]
-- Use fresh pattern suggested in [TA] Pattern Suggestions
-- Match character voice from [CE] while avoiding patterns listed in [TA] Avoid List
-- Reference appropriate metrics from [CS] if needed, but only if they strengthen the hook
-- Ensure hook aligns with selected strategy from [TA]
-- Create attention-grabbing opening
-- Set up value delivery
-
-Message Core Development
-- Center around value proposition from [TA]
-- Integrate supporting elements identified in [TA]
-- Pull relevant context from [KB] if needed for grounding
-- Maintain character voice markers from [CE]
-- Check [PC] to avoid recent patterns or phrases
-- If using metrics from [CS], provide full context
-- Build natural flow
-- Maintain engagement
-
-Strategic Close Creation
-- End with strong element that locks in strategy's value
-- Add engagement hook aligned with strategy type
-- Create memorable element that fits character voice
-- Ensure close flows naturally from message core
-- Reference [CE] example posts for tone calibration
-- Leave conversation opening if appropriate
-- Maintain character authenticity
-
-## 2. Variation Creation
-Create three distinct variations using [TA] guidelines:
-
-Primary Version
-- Implement strategy directly
-- Use clear value proposition
-- Follow pattern suggestions
-- Maintain strong voice
-- Include supporting elements
-- Create natural flow
-- Ensure impact
-
-Alternative Angle
-- Take fresh perspective on same value
-- Use different pattern structure
-- Maintain strategy alignment
-- Vary sentence structure
-- Keep voice consistency
-- Change approach
-- Hold value proposition
-
-Third Variation
-- Create unique approach
-- Change flow completely
-- Keep core message
-- Use different hook style
-- Maintain character authenticity
-- Vary structure
-- Ensure freshness
-
-For each variation:
-- Reference [CE] for voice consistency
-- Check [PC] to avoid recent patterns
-- Verify against [TA] Avoid List
-- Ensure alignment with strategy
-- Maintain value proposition
-- Create unique structure
-- Confirm engagement potential
-
-## 3. Quality Verification
-Check each variation against:
-
-Technical Truth
-- Verify metric accuracy using [CS]
-- Check context clarity with [KB]
-- Confirm time relevance
-- Validate project references
-- Ensure data consistency
-- Verify technical accuracy
-- Maintain information clarity
-
-Strategy Success
-- Alignment with [TA] strategy
-- Clear value delivery
-- Pattern freshness
-- Engagement potential
-- Development possibilities
-- Strategy effectiveness
-- Value proposition clarity
-
-Character Truth
-- Voice consistency with [CE]
-- Style rule compliance
-- Perspective alignment
-- Posting guideline adherence
-- Authenticity check
-- Tone appropriateness
-- Language match
-
-## 4. Final Selection
-Choose optimal tweet based on:
-
-Quality Factors
-- Technical accuracy
-- Strategy implementation
-- Character authenticity
-- Value clarity
-- Engagement potential
-- Pattern freshness
-- Voice strength
-
-Differentiation
-- Pattern uniqueness
-- Structural freshness
-- Voice strength
-- Value delivery
-- Memory potential
-- Hook effectiveness
-- Close impact
-
-Future Impact
-- Conversation potential
-- Development possibilities
-- Community value
-- Strategy advancement
-- Character growth
-- Engagement likelihood
-- Value longevity
-Output your generation in JSON format following the TweetGenerationResponse interface.`;
+# 5. FINAL OUTPUT
+Produce a JSON response following the TweetGenerationResponse interface:
+- Include the selected tweet text.
+- Reference the chosen angle, topic, and value.
+- Briefly explain how this version respects the constraints (e.g., voice, authenticity, avoidance of patterns).
+- Confirm its alignment with the final strategy package from [TA].
+`;
