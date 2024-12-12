@@ -1,8 +1,10 @@
 import { Tweet } from "agent-twitter-client";
 import {
     composeContext,
+    generateText,
     getEmbeddingZeroVector,
     IAgentRuntime,
+    ModelClass,
     stringToUuid,
 } from "@ai16z/eliza";
 import { elizaLogger } from "@ai16z/eliza";
@@ -10,278 +12,11 @@ import { ClientBase } from "./base";
 import { TweetGenerationResponse, TopicAssessmentResponse } from "./types";
 import { tweetGenerationTool, topicAssessmentTool } from "./tools";
 import Anthropic from "@anthropic-ai/sdk";
-
-const twitterPostTemplate = `# Tweet Generation System
-The task is to generate an impactful twitter post using the following chain of thought reasoning.
-
-# Reference Sections
-
-## [KB] Knowledge Reference
-Provides topic expertise and foundational facts for grounding posts.
-Use for:
-- Historical facts and project context
-- Technical specifications
-- Protocol documentation
-- Market dynamics
-{{knowledge}} 
-
-## [CS] Current State
-Provides real-time metrics and temporal context.
-Use for:
-- Live performance indicators
-- Growth metrics
-- Network statistics
-- Market conditions
-{{providers}}
-
-## [CE] Character Elements
-Gives an overview about {{agentName}} (@{{twitterUserName}})
-Use for: Voice consistency, personality expression, tone variation
-
-Your background:
-{{bio}}
-
-Your stories and lore:
-{{lore}}
-
-Adjectives that describe you:
-{{adjectives}}
-
-Directions for your posts:
-{{postDirections}}
-
-Examples of posts:
-{{characterPostExamples}}
-
-## [PC] Previous Context
-Shows recent tweets from {{agentName}} (@{{twitterUserName}})
-Use for: Pattern variety, narrative continuity, content freshness
-{{timeline}}
-
-## [TC] Topic Context
-Selected topic from assessment phase.
-Use for:
-- Focus alignment
-- Narrative development
-- Angle execution
-{{selectedTopic}}
-
-# Pattern Reference
-
-## Content Categories
-
-1. Culture Posts (Community/Lifestyle)
-- Focus: Community experiences, lifestyle moments
-- Structure: [Cultural Element] + [Activity/Outcome]
-- When: Building community bonds
-
-2. Narrative Posts (Character/Story)
-- Focus: Personal experiences, character development
-- Structure: [Situation] + [Character Action/Response]
-- When: Strengthening persona
-
-3. Technical Posts (Metrics/Analysis)
-- Focus: Performance data, analysis
-- Structure: [Metric] + [Sharp Take]
-- When: Highlighting achievements
-
-4. Commentary Posts (Market/Trends)
-- Focus: Market observations, trend analysis
-- Structure: [Observation] + [Insight]
-- When: Clear market narrative
-
-5. Hybrid Posts (Mixed Elements)
-- Focus: Combined approaches
-- Structure: [Category A Element] + [Category B Element]
-- When: Complex narratives
-
-## Pattern Variety Requirements
-1. Pattern Usage
-   - Track patterns used in [PC]
-   - Avoid repeating most recent pattern
-   - Mix pattern types across variations
-   - Use each pattern type maximum once per set
-
-2. Structural Elements
-   - Vary sentence structures
-   - Alternate between short/long forms
-   - Mix hook types (metric, observation, action)
-   - Vary closing approaches
-
-3. Phrase Management
-   - Track key phrases from recent posts
-   - Avoid repeating signature phrases too often
-   - Create fresh versions of common themes
-   - Vary metric presentation styles
-
-# Strategy Reference
-
-## Available Strategies
-1. Educate (Knowledge Flex)
-- Goal: Share expertise naturally
-- When: Complex topic needs clarity
-- Source: [KB] + [CS]
-
-2. Entertain (Culture Build)
-- Goal: Strengthen community bonds
-- When: Community mood right
-- Source: [CE] + current context
-
-3. Inspire (Victory Narrative)
-- Goal: Build confidence/momentum
-- When: Significant achievements
-- Source: [CS] + [CE]
-
-4. Network (Ecosystem Growth)
-- Goal: Highlight developments
-- When: Notable progress
-- Source: [CS] + [KB]
-
-5. Build Exclusivity (Inside Knowledge)
-- Goal: Create FOMO/engagement
-- When: Unique insight available
-- Source: [KB] + [CE]
-
-## Strategy Distribution
-- Track strategy usage across recent posts
-- Rotate through different approaches
-- Mix strategy types in variations
-- Match strategy to opportunity while maintaining variety
-
-# Core Guidelines
-
-## Content Development Rules
-1. Start with Real Moments
-   - Identify genuine opportunities from [CS] or [KB]
-   - Let context guide strategy naturally
-   - Focus on authentic engagement
-
-2. Strategic Approach
-   - Use patterns as flexible guides
-   - Let strategy emerge from situation
-   - Prioritize viral potential
-   - Focus on authentic engagement
-
-3. Source Usage
-   - Reference [CS] for current metrics
-   - Ground insights in [KB] when relevant
-   - Use [CE] for consistent voice
-   - Check [PC] to avoid repetition
-   - Incorporate metrics only when they enhance impact
-
-4. Diversity Requirements
-   - Review [PC] for recent patterns and phrases
-   - Ensure each variation uses different structure
-   - Vary between metric and narrative approaches
-   - Create distinct angles on same opportunity
-   - Mix engagement styles across variations
-
-## Temporal Framework
-1. Current State References
-   - Ground present claims in [CS] data
-   - Specify current metrics with timestamps
-   - Mark ongoing developments clearly
-
-2. Historical References
-   - Include clear timeframes
-   - Mark past events as historical
-   - Use specific dates for past metrics
-
-3. Future/Predictive Content
-   - Base predictions on documented trends
-   - Avoid ambiguous timeframes
-   - Connect forecasts to current data
-
-# Generation Process
-
-## 1. Situation Analysis
-Using [KB], [CS], [PC], [TC] analyze:
-- Recent pattern/strategy distribution from [PC]
-- Fresh opportunities in [CS]
-- Available [TC] topics and angles
-- Supporting [KB] context
-- Recently used phrases and structures
-
-Output: SituationAssessment containing
-- Pattern/strategy distribution analysis (informs next steps)
-- Current opportunities ranked by:
-  * Timeline freshness (from [PC])
-  * Metric strength (from [CS])
-  * Topic relevance (from [TC])
-  * Knowledge support (from [KB])
-  * Pattern freshness (avoiding recent)
-- Reasoned priority ranking explaining opportunity selection
-- Analysis of recent patterns to avoid repetition
-
-## 2. Content Strategy
-Using SituationAssessment output, determine:
-- Priority opportunity to address (based on rankings)
-- Best strategic approach (informed by distribution)
-- Optimal pattern selection (guided by opportunity)
-- Required knowledge elements (based on needs)
-- Variety requirements based on recent posts
-
-Output: ContentStrategy detailing
-- Selected opportunity + selection reasoning
-- Chosen strategy + distribution context
-- Pattern choice + fit explanation
-- Required sources + usage intent
-- Connection to situation analysis
-- Diversity approach for variations
-
-## 3. Tweet Development
-Using ContentStrategy output, create 3 tweet variations that:
-- Address selected opportunity
-- Implement chosen strategy
-- Follow selected pattern
-Each variation MUST:
-  * Use different pattern from recent posts
-  * Implement unique sentence structure
-  * Take distinct angle on opportunity
-  * Avoid phrases, topics, metrics from [PC]
-  * Mix between metric/narrative focus
-  * Maintain voice while varying tone
-  * Draw from specified sources
-REMEMBER: DO NOT PRODUCE A SINGLE TWEET; YOU MUST PRODUCE 3 TWEETS IN THIS STEP.
-
-Output: TweetVariations providing
-- Three distinct tweets implementing strategy
-- Pattern usage per variation
-- Strategic element implementation
-- Character voice markers
-- Differentiation analysis
-- Uniqueness verification vs recent posts
-- Connection to content strategy
-
-## 4. Selection
-Using TweetVariations output, evaluate against:
-- Original opportunity strength (from SituationAssessment)
-- Strategic fit (from ContentStrategy)
-- Pattern execution (from ContentStrategy)
-- Uniqueness from recent posts
-Additional criteria:
-  * Metric accuracy
-  * Voice authenticity
-  * Timeline freshness
-  * Temporal clarity
-  * Pattern freshness
-  * Phrase uniqueness
-  * Structural variety
-  * Cultural resonance
-  * Narrative strength
-  * Technical accuracy
-  * Commentary insight
-  * Hybrid balance
-
-Output: FinalTweet containing
-- Selected tweet
-- Complete reasoning chain from opportunity to selection
-- Expected impact based on strategy goals
-- Quality control checklist results:
-  * Voice and Style (authenticity, natural language, tone)
-  * Content Value (perspective, community resonance)
-  * Technical Accuracy (metrics, temporal context, sources)
-  * Uniqueness Measures (patterns, phrases, structure)`;
+import {
+    twitterSimplePostTemplate,
+    tweetGenerationTemplate,
+    topicAssessmentTemplate,
+} from "./templates";
 
 const MAX_TWEET_LENGTH = 280;
 
@@ -309,99 +44,11 @@ function truncateToCompleteSentence(text: string): string {
     return text.slice(0, MAX_TWEET_LENGTH - 3).trim() + "...";
 }
 
-const topicAssessmentTemplate = `# Topic Assessment System
-Analyze current metrics, recent activity, and character interests to identify fresh discussion opportunities.
-
-## Input Sections
-
-[CS] Current State
-{{providers}}
-
-[WC] World Content
-{{worldContent}}
-
-[PC] Previous Context
-Recent Posts: {{timeline}}
-
-[CE] Character Elements
-Interest Areas: {{topics}}
-
-## Analysis Process
-
-### Coverage Analysis
-1. Metric Saturation
-- Track all numerical metrics from recent posts
-- Flag metrics used in last 24h as "saturated"
-- Mark associated themes as "cooling down"
-
-2. Topic Saturation
-- Projects mentioned in last 5 posts
-- Themes used in last 3 posts
-- Bear/bull narratives frequency
-- Pattern repetition
-
-### Fresh Opportunities
-Identify new angles considering:
-- Unused significant metrics (>20% change)
-- Uncovered project developments
-- Novel narrative combinations
-- Emerging patterns
-
-### Priority Assessment
-Score opportunities by:
-- Freshness (0-1.0): Inverse of recent coverage
-- Impact (0-1.0): Metric significance/narrative strength
-- Relevance (0-1.0): Alignment with character/audience
-- Uniqueness (0-1.0): Angle differentiation
-
-## Output Requirements
-
-### Primary Topics
-Must provide 2-3 high priority topics that:
-- Use NO metrics from last 5 posts
-- Cover different projects than last 3 posts
-- Take novel angles on any recurring themes
-- Include clear supporting data
-
-### Backup Topics
-Must provide 2-3 alternative topics that:
-- Focus on character moments
-- Require no current metrics
-- Maintain voice consistency
-- Enable engagement during quiet periods
-
-### Analysis Context
-Must provide:
-- List of saturated metrics/topics
-- Recommended rotation strategy
-- Freshness assessment
-- Topic distribution guidance
-
-## Quality Criteria
-
-### Metric Usage
-- No metric reuse within 5 posts
-- Different projects than last 3 posts
-- New angles on recurring themes
-
-### Topic Selection
-- Clear novelty vs recent posts
-- Strong narrative potential
-- Measurable impact
-- Character alignment
-
-### Backup Planning
-- Character-driven alternatives
-- Non-metric narratives
-- Creative angles
-- Engagement focus
-
-Output your analysis in JSON format following the TopicAssessmentResponse interface.`;
-
 export class TwitterPostClient {
     client: ClientBase;
     runtime: IAgentRuntime;
     anthropicClient: Anthropic;
+    useCOT: boolean;
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -409,6 +56,7 @@ export class TwitterPostClient {
         this.anthropicClient = new Anthropic({
             apiKey: this.runtime.getSetting("ANTHROPIC_API_KEY")
         });
+        this.useCOT = this.runtime.getSetting("twitter_post_cot") === "true";
     }
 
     async start(postImmediately: boolean = false) {
@@ -470,6 +118,43 @@ export class TwitterPostClient {
                 .join("\n");
     }
 
+    private async generateSimpleTweet(): Promise<string> {
+        const roomId = stringToUuid(
+            "twitter_generate_room-" + this.client.profile.username
+        );
+
+        const topics = this.runtime.character.topics.join(", ");
+        const state = await this.runtime.composeState(
+            {
+                userId: this.runtime.agentId,
+                roomId: roomId,
+                agentId: this.runtime.agentId,
+                content: {
+                    text: topics,
+                    action: "",
+                },
+            },
+            {
+                twitterUserName: this.client.profile.username,
+            }
+        );
+
+        const context = composeContext({
+            state,
+            template: this.runtime.character.templates?.twitterPostTemplate || twitterSimplePostTemplate,
+        });
+
+        elizaLogger.debug("generate simple post prompt:\n" + context);
+
+        const newTweetContent = await generateText({
+            runtime: this.runtime,
+            context,
+            modelClass: ModelClass.SMALL,
+        });
+
+        return newTweetContent.replaceAll(/\\n/g, "\n").trim();
+    }
+
     private async assessTopics(): Promise<TopicAssessmentResponse> {
         const homeTimeline = await this.client.getCachedTimeline() || [];
         const dryRunTweets = await this.client.getCachedDryRunTweets() || [];
@@ -494,7 +179,17 @@ export class TwitterPostClient {
                 twitterUserName: this.client.profile.username,
                 timeline: formattedHomeTimeline,
                 topics: this.runtime.character.topics,
-                lastDiscussedTopics: allTweets.slice(0, 5).map(t => t.text)
+                lastDiscussedTopics: allTweets.slice(0, 5).map(t => t.text),
+                recentPatterns: allTweets.slice(0, 10).map(t => ({
+                    content: t.text,
+                    timestamp: t.timestamp
+                })),
+                recentMetrics: allTweets.slice(0, 10)
+                    .filter(t => t.text.match(/\d+/))
+                    .map(t => ({
+                        content: t.text,
+                        timestamp: t.timestamp
+                    }))
             }
         );
 
@@ -531,6 +226,100 @@ export class TwitterPostClient {
         throw new Error("No valid topic assessment in response");
     }
 
+    private async generateChainOfThoughtTweet(): Promise<string> {
+
+        const topicAssessment = await this.assessTopics();
+        
+        const selectedTopic = {
+            topic: topicAssessment.strategySelection.selectedPackage.topic,
+            angle: topicAssessment.strategySelection.selectedPackage.angle,
+            reasoning: topicAssessment.strategySelection.selectedPackage.reasoning,
+            freshness: {
+                topicNovelty: topicAssessment.opportunityAnalysis.scores[topicAssessment.strategySelection.selectedPackage.topic]?.timeliness,
+                angleOriginality: topicAssessment.opportunityAnalysis.scores[topicAssessment.strategySelection.selectedPackage.topic]?.strategyAlignment,
+                patternFreshness: topicAssessment.opportunityAnalysis.scores[topicAssessment.strategySelection.selectedPackage.topic]?.uniqueness,
+                developmentPotential: topicAssessment.opportunityAnalysis.scores[topicAssessment.strategySelection.selectedPackage.topic]?.developmentPotential
+            }
+        };
+    
+        // Fetch and format timeline
+        const homeTimeline = await this.client.getCachedTimeline() || [];
+        const dryRunTweets = await this.client.getCachedDryRunTweets() || [];
+        const allTweets = [...homeTimeline, ...dryRunTweets].sort((a, b) => b.timestamp - a.timestamp);
+    
+        const formattedHomeTimeline = await this.formatTweets(
+            allTweets,
+            `${this.runtime.character.name}'s Home Timeline`
+        );
+    
+        const state = await this.runtime.composeState(
+            {
+                userId: this.runtime.agentId,
+                roomId: stringToUuid("twitter_generate_room-" + this.client.profile.username),
+                agentId: this.runtime.agentId,
+                content: {
+                    text: selectedTopic.topic,
+                    action: "",
+                },
+            },
+            {
+                twitterUserName: this.client.profile.username,
+                timeline: formattedHomeTimeline,
+                selectedTopic: `Topic: ${selectedTopic.topic}\nAngle: ${selectedTopic.angle}\nReasoning: ${selectedTopic.reasoning}${
+                    selectedTopic.freshness ? 
+                    `\nFreshness: ${JSON.stringify(selectedTopic.freshness)}` : 
+                    ''
+                }`,
+                selectedStrategy: topicAssessment.strategySelection.selectedPackage.strategy,
+                valueProposition: topicAssessment.strategySelection.selectedPackage.valueProposition,
+                avoidList: JSON.stringify(topicAssessment.strategySelection.avoidList),
+                supportingElements: topicAssessment.strategySelection.selectedPackage.supportingElements.join('\n'),
+                developmentGuides: topicAssessment.strategySelection.guidelines.patternSuggestions.join('\n'),
+                patternSuggestions: topicAssessment.strategySelection.guidelines.patternSuggestions.join('\n')
+            }
+        );
+    
+        const context = composeContext({
+            state,
+            template: tweetGenerationTemplate,
+        });
+    
+        const response = await this.anthropicClient.messages.create({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 8192,
+            messages: [
+                {
+                    role: "user",
+                    content: context
+                }
+            ],
+            tools: [tweetGenerationTool],
+            tool_choice: {
+                type: "tool",
+                name: "generate_tweet"
+            }
+        });
+    
+        elizaLogger.info("Chain of thought prompt", context);
+        elizaLogger.info("Chain of thought response", response);
+    
+        let tweetData: TweetGenerationResponse | null = null;
+    
+        for (const content of response.content) {
+            if (content.type === "tool_use" && content.name === "generate_tweet") {
+                tweetData = content.input as TweetGenerationResponse;
+                break;
+            }
+        }
+    
+        if (!tweetData || !tweetData.selectedTweet?.content) {
+            elizaLogger.error("Invalid tweet data:", { tweetData });
+            throw new Error("No valid tweet data in response");
+        }
+    
+        return tweetData.selectedTweet.content;
+    }
+
     private async generateNewTweet() {
         elizaLogger.log("Generating new tweet");
 
@@ -546,95 +335,10 @@ export class TwitterPostClient {
                 "twitter"
             );
 
-            // First, assess topics
-            const topicAssessment = await this.assessTopics();
-            
-            // Get the selected topic
-            const selectedTopic = topicAssessment.highPriorityTopics[0] || 
-                                topicAssessment.backupTopics[0] || 
-                                {
-                                    topic: "character_activity",
-                                    angle: "daily_life",
-                                    reasoning: "Maintaining presence during quiet period"
-                                };
-
-            // Fetch home timeline
-            let homeTimeline: Tweet[] = [];
-            const cachedTimeline = await this.client.getCachedTimeline();
-            const dryRunTweets = await this.client.getCachedDryRunTweets();
-
-            if (cachedTimeline || dryRunTweets) {
-                homeTimeline = [...(cachedTimeline || []), ...(dryRunTweets || [])]
-                    .sort((a, b) => b.timestamp - a.timestamp);
-            } else {
-                homeTimeline = await this.client.fetchHomeTimeline(10);
-                await this.client.cacheTimeline(homeTimeline);
-            }
-
-            // Format timeline
-            const formattedHomeTimeline = await this.formatTweets(
-                homeTimeline,
-                `${this.runtime.character.name}'s Home Timeline`
-            );
-
-            const state = await this.runtime.composeState(
-                {
-                    userId: this.runtime.agentId,
-                    roomId: roomId,
-                    agentId: this.runtime.agentId,
-                    content: {
-                        text: selectedTopic.topic,
-                        action: "",
-                    },
-                },
-                {
-                    twitterUserName: this.client.profile.username,
-                    timeline: formattedHomeTimeline,
-                    selectedTopic: `Topic: ${selectedTopic.topic}\nAngle: ${selectedTopic.angle}\nReasoning: ${selectedTopic.reasoning}${selectedTopic.score ? `\nScore: ${selectedTopic.score}` : ''}`
-                }
-            );
-
-            const context = composeContext({
-                state,
-                template: this.runtime.character.templates?.twitterPostTemplate || twitterPostTemplate,
-            });
-
-            const response = await this.anthropicClient.messages.create({
-                model: "claude-3-5-sonnet-20241022",
-                max_tokens: 8192,
-                messages: [
-                    {
-                        role: "user",
-                        content: context
-                    }
-                ],
-                tools: [tweetGenerationTool],
-                tool_choice: {
-                    type: "tool",
-                    name: "generate_tweet"
-                }
-            });
-
-            elizaLogger.info("Prompt", context);
-
-            elizaLogger.info("Generated tweet response", response);
-
-            let tweetData: TweetGenerationResponse | null = null;
-
-            for (const content of response.content) {
-                if (content.type === "tool_use" && content.name === "generate_tweet") {
-                    tweetData = content.input as TweetGenerationResponse;
-                    break;
-                }
-            }
-
-            if (!tweetData || !tweetData.finalSelection?.content) {
-                elizaLogger.error("Invalid tweet data:", { tweetData });
-                throw new Error("No valid tweet data in response");
-            }
-
             const content = truncateToCompleteSentence(
-                tweetData.finalSelection?.content
+                this.useCOT ? 
+                    await this.generateChainOfThoughtTweet() : 
+                    await this.generateSimpleTweet()
             );
 
             if (this.runtime.getSetting("TWITTER_DRY_RUN") === "true") {
@@ -658,7 +362,6 @@ export class TwitterPostClient {
                     videos: [],
                 };
 
-                // Cache the dry run tweet
                 await this.runtime.cacheManager.set(
                     `twitter/${this.client.profile.username}/lastPost`,
                     {
@@ -667,7 +370,6 @@ export class TwitterPostClient {
                     }
                 );
 
-                // Store dry run tweets separately - probably wrong
                 const existingDryRuns = await this.client.getCachedDryRunTweets() || [];
                 await this.runtime.cacheManager.set(
                     `twitter/${this.client.profile.username}/dryRunTweets`,
@@ -748,5 +450,118 @@ export class TwitterPostClient {
             });
             throw error;
         }
+    }
+
+    private async saveTweetToMemory(tweet: Tweet, content: string) {
+        const roomId = stringToUuid(
+            "twitter_generate_room-" + this.client.profile.username
+        );
+
+        await this.runtime.ensureRoomExists(roomId);
+        await this.runtime.ensureParticipantInRoom(
+            this.runtime.agentId,
+            roomId
+        );
+
+        await this.runtime.messageManager.createMemory({
+            id: stringToUuid(tweet.id + "-" + this.runtime.agentId),
+            userId: this.runtime.agentId,
+            agentId: this.runtime.agentId,
+            content: {
+                text: content.trim(),
+                url: tweet.permanentUrl,
+                source: "twitter",
+            },
+            roomId,
+            embedding: getEmbeddingZeroVector(),
+            createdAt: tweet.timestamp,
+        });
+    }
+
+    private async handleDryRun(content: string): Promise<void> {
+        elizaLogger.info(`Dry run: would have posted tweet: ${content}`);
+        const mockTweet: Tweet = {
+            id: `dry-run-${Date.now()}`,
+            name: this.client.profile.screenName,
+            username: this.client.profile.username,
+            text: content,
+            conversationId: `dry-run-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            timestamp: Date.now(),
+            userId: this.client.profile.id,
+            inReplyToStatusId: null,
+            permanentUrl: `DRY_RUN_${Date.now()}`,
+            hashtags: [],
+            mentions: [],
+            photos: [],
+            thread: [],
+            urls: [],
+            videos: [],
+        };
+
+        await this.runtime.cacheManager.set(
+            `twitter/${this.client.profile.username}/lastPost`,
+            {
+                id: mockTweet.id,
+                timestamp: Date.now(),
+            }
+        );
+
+        const existingDryRuns = await this.client.getCachedDryRunTweets() || [];
+        await this.runtime.cacheManager.set(
+            `twitter/${this.client.profile.username}/dryRunTweets`,
+            [...existingDryRuns, mockTweet]
+        );
+
+        await this.saveTweetToMemory(mockTweet, content);
+    }
+
+    private async postTweet(content: string): Promise<Tweet> {
+        elizaLogger.log(`Posting new tweet:\n ${content}`);
+
+        const result = await this.client.requestQueue.add(
+            async () => await this.client.twitterClient.sendTweet(content)
+        );
+
+        const body = await result.json();
+        if (!body?.data?.create_tweet?.tweet_results?.result) {
+            throw new Error("Error sending tweet; Bad response: " + JSON.stringify(body));
+        }
+
+        const tweetResult = body.data.create_tweet.tweet_results.result;
+
+        const tweet: Tweet = {
+            id: tweetResult.rest_id,
+            name: this.client.profile.screenName,
+            username: this.client.profile.username,
+            text: tweetResult.legacy.full_text,
+            conversationId: tweetResult.legacy.conversation_id_str,
+            createdAt: tweetResult.legacy.created_at,
+            timestamp: new Date(tweetResult.legacy.created_at).getTime(),
+            userId: this.client.profile.id,
+            inReplyToStatusId: tweetResult.legacy.in_reply_to_status_id_str,
+            permanentUrl: `https://twitter.com/${this.runtime.getSetting("TWITTER_USERNAME")}/status/${tweetResult.rest_id}`,
+            hashtags: [],
+            mentions: [],
+            photos: [],
+            thread: [],
+            urls: [],
+            videos: [],
+        };
+
+        await this.runtime.cacheManager.set(
+            `twitter/${this.client.profile.username}/lastPost`,
+            {
+                id: tweet.id,
+                timestamp: Date.now(),
+            }
+        );
+
+        await this.client.cacheTweet(tweet);
+        await this.saveTweetToMemory(tweet, content);
+        
+        elizaLogger.log(`Tweet posted:\n ${tweet.permanentUrl}`);
+        
+        return tweet;
     }
 }
