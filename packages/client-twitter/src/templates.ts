@@ -17,353 +17,470 @@ export const twitterSimplePostTemplate = `
 Write a 1 sentence post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post.
 Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than 280. No emojis. Use \\n\\n (double spaces) between statements.`;
 
-export const topicAssessmentTemplate = `
-# TOPIC ASSESSMENT SYSTEM
+export const baseValidation = `
+# VALIDATION REQUIREMENTS
 
-Initial Evaluation Questions:
-- What opportunities exist in the current context?
-- What unique value can {{agentName}} provide now?
-- How can we maintain authenticity while adding fresh perspective?
+Quality Metrics:
+- Relevance: How well does this align with the goal?
+- Authenticity: Does this match character voice/expertise?
+- Value: Does this add meaningful insight?
+- Coherence: Does this build logically on previous steps?
 
-# 1. CONTEXT MAPPING
+Check for:
+1. Required fields present and properly formatted
+2. Values within expected ranges/formats
+3. Logical consistency with previous steps
+4. Character voice alignment
 
-## [CS] Current State Analysis
-Key Questions:
-- What significant developments or discussions are happening?
-- Which narratives are emerging or shifting?
-- What opportunities arise from current context?
-- Where are the gaps in current discussions?
+Error Cases to Handle:
+- Missing required data
+- Invalid format/structure
+- Logical inconsistencies
+- Voice/character misalignment
+`;
 
-Current Environment Analysis:
-1. Real-time Updates
-   - Breaking news
-   - Community discussions
-   - Market developments
-   - Project announcements
+export const planningTemplate = `
+[CRITICAL WARNING]
+Return ONLY this structure:
+{
+  "steps": [...],
+  "validation": {...},
+  "error_handling": {...},
+  "metadata": {...}
+}
+DO NOT wrap in 'input' or 'properties' objects.
 
-2. Metric Synthesis
-   - Key performance indicators
-   - Growth trends
-   - System health
-   - Market activity
+# TWEET GENERATION PLANNING
 
-3. Social/Cultural Context
-   - Community sentiment
-   - Notable discussions
-   - Cultural moments
-   - Emerging narratives
-
-Current Environment:
-{{providers}}
-
-**Context Mapping Summary:**
-From the above, identify the most relevant developments, shifts in narrative, and emerging opportunities that could inform the next steps. Note down any significant trends, sentiment shifts, or knowledge gaps that {{agentName}} can address.
-
-## [CE] Character Elements
-Voice Questions:
-- How would {{agentName}} naturally view current events?
-- Which aspects of their character are most relevant now?
-- What unique perspective can they authentically add?
-
-About {{agentName}}:
+[Character Context]
+Name: {{agentName}}
+Twitter: @{{twitterUserName}}
 Background: {{bio}}
+Core Knowledge: {{knowledge}}
+Personality: {{adjectives}}
+Voice Rules: {{postDirections}}
 
-Stories and Lore: 
-{{lore}}
+[Environmental Context]
+Current Landscape: {{providers}}
+Recent Activity: {{timeline}}
 
-Key Traits: {{adjectives}}
+You are a tweet planning system. Design a custom sequence of steps that will produce the best possible tweet. You can:
+- Include multiple assessment steps
+- Add refinement or revision steps
+- Include validation at any point
+- Add extra research steps when needed
+- Loop back to previous step types if improvements are needed
 
-Post Directoins andVoice Rules: 
-{{postDirections}}
+[AVAILABLE STEP TYPES]
+- "assessment": Analyze context, opportunities, or results
+- "rag": Gather knowledge or verify information
+- "strategy": Develop or refine content strategy
+- "generation": Create or improve content
+- "validation": Validate at any stage
+- "planning": Plan or adjust the approach
 
-Reference Posts by {{agentName}}: 
+[VALIDATION REQUIREMENTS]
+Each step must include proper validation structure:
+{
+    "technical_checks": {
+        "input_complete": boolean,
+        "format_valid": boolean,
+        "dependencies_met": boolean,
+        "schema_valid": boolean
+    },
+    "character_alignment": {
+        "voice_score": number,      // 0-5 only
+        "expertise_score": number,  // 0-5 only
+        "authenticity_score": number // 0-5 only
+    },
+    "value_assessment": {
+        "information_value": number,  // 0-5 only
+        "community_value": number,    // 0-5 only
+        "strategic_value": number     // 0-5 only
+    },
+    "risk_evaluation": {
+        "identified_risks": string[],          // MIN 1 item
+        "mitigation_suggestions": string[]     // MIN 1 item
+    }
+}
+
+[VALIDATION RULE]
+Risk evaluation arrays must NEVER be empty. If no risks exist, include at least:
+"identified_risks": ["No significant risks identified"],
+"mitigation_suggestions": ["Continue monitoring for emerging risks"]
+
+[ERROR HANDLING REQUIREMENTS]
+Each error_handling object must include:
+{
+    "retry_strategy": {
+        "max_attempts": number,        // 2-5 only
+        "conditions": string[]         // MIN 1 specific condition like "voice_score < 4"
+    },
+    "fallback_options": string[],      // MIN 1 specific option
+    "recovery_steps": string[]         // MIN 1 specific step
+}
+
+[RESPONSE STRUCTURE]
+Return a direct object (NO 'input' or 'properties' wrappers):
+{
+    "steps": [
+        {
+            "id": string,              // Unique identifier
+            "type": string,            // One of the step types above
+            "template": string,        // Step instructions
+            "purpose": string,         // Clear goal
+            "requires_rag": boolean,
+            "dependencies": string[],  // IDs of required previous steps
+            "validation": {
+                // Validation structure as above
+            },
+            "error_handling": {
+                // Error handling structure as above
+            },
+            "metadata": {
+                "estimated_duration": number,
+                "required_context": string[],    // MIN 1 item
+                "success_criteria": string[]     // MIN 1 specific criterion
+            }
+        }
+    ],
+    "validation": {
+        // Same validation structure as steps
+    },
+    "error_handling": {
+        // Same error_handling structure as steps
+    },
+    "metadata": {
+        "estimated_duration": number,
+        "required_context": string[],    // MIN 1 item
+        "success_criteria": string[]     // MIN 1 specific criterion
+    }
+}
+
+[CRITICAL REQUIREMENTS]
+1. ALL array fields must contain at least 1 item
+2. ALL number scores must be between 0-5
+3. ALL error conditions must be specific and testable
+4. ALL technical checks must include all required fields
+5. NO empty or null fields allowed
+6. Dependencies must reference valid step IDs
+7. Return direct object with NO wrapper objects
+
+Design a plan that will create the best possible tweet, using whatever steps and sequence you determine are necessary.
+`;
+
+export const ragTemplate = `
+# KNOWLEDGE RETRIEVAL REQUEST
+
+[Step Context]
+Purpose: {{stepPurpose}}
+Knowledge Needs: {{knowledgeNeeds}}
+Current Understanding: {{currentContext}}
+
+[Character Expertise]
+Core Knowledge: {{knowledge}}
+Background: {{bio}}
+Current Focus: {{selectedTopic}}
+
+[Execution Context]
+Prior Steps: {{dependencyOutputs}}
+Gathered Insights: {{priorInsights}}
+Goal: {{objective}}
+
+Generate knowledge query:
+
+1. Query Formation:
+- Target specific knowledge gaps
+- Consider expertise context
+- Include temporal bounds
+- Specify format expectations
+
+2. Relevance Criteria:
+- Must include technical/factual elements
+- Should align with character expertise
+- Must be temporally appropriate
+- Should build on existing knowledge
+
+3. Success Metrics:
+- Information completeness
+- Technical accuracy
+- Expertise alignment
+- Usability for next steps
+
+${baseValidation}
+
+Output Format:
+{
+  "query": string,
+  "focus_areas": string[],
+  "expected_use": string,
+  "relevance_criteria": {
+    "mustHave": string[],
+    "niceToHave": string[],
+    "avoid": string[]
+  },
+  "validation": {
+    "completeness_checks": string[],
+    "accuracy_requirements": string[],
+    "relevance_metrics": string[]
+  }
+}
+`;
+
+export const initialAssessmentTemplate = `
+# INITIAL ASSESSMENT
+
+[Base Context]
+${baseValidation}
+
+[Current Environment]
+Landscape: {{providers}}
+Timeline: {{timeline}}
+Recent Activity: {{recentActivity}}
+
+[Character Foundation]
+Background: {{bio}}
+Expertise: {{knowledge}}
+Voice: {{postDirections}}
+
+Analyze current context:
+
+1. Opportunity Identification:
+- Emerging discussions
+- Knowledge gaps
+- Unique perspective opportunities
+- Value addition potential
+
+2. Character Alignment:
+- Natural interest areas
+- Expertise relevance
+- Voice authenticity potential
+- Authentic engagement angles
+
+3. Strategic Value:
+- Community needs
+- Discussion advancement
+- Knowledge contribution
+- Narrative development
+
+Output Format:
+{
+  "opportunities": {
+    "identified": Array<Opportunity>,
+    "prioritization": {
+      "criteria": string[],
+      "rankings": Record<string, number>
+    }
+  },
+  "knowledge_needs": {
+    "gaps": string[],
+    "verification_needs": string[],
+    "context_requirements": string[]
+  },
+  "character_alignment": {
+    "natural_angles": string[],
+    "voice_considerations": string[],
+    "expertise_utilization": string[]
+  }
+}
+`;
+
+export const strategyTemplate = `
+# STRATEGY DEVELOPMENT
+
+[Current Understanding]
+Retrieved Knowledge: {{retrievedKnowledge}}
+Identified Opportunities: {{opportunities}}
+Character Alignment: {{characterAlignment}}
+
+[Execution Context]
+Prior Steps: {{dependencyOutputs}}
+Current Focus: {{selectedFocus}}
+
+${baseValidation}
+
+Develop content strategy:
+
+1. Angle Selection:
+- Evaluate opportunities
+- Consider knowledge utilization
+- Ensure character alignment
+- Validate uniqueness
+
+2. Structure Planning:
+- Message architecture
+- Key points placement
+- Flow development
+- Impact optimization
+
+3. Voice Integration:
+- Character trait utilization
+- Expertise demonstration
+- Authentic perspective
+- Natural engagement
+
+Output Format:
+{
+  "selected_strategy": {
+    "angle": string,
+    "rationale": string,
+    "key_points": string[],
+    "structure": {
+      "opening": string,
+      "development": string,
+      "conclusion": string
+    }
+  },
+  "voice_plan": {
+    "traits_to_emphasize": string[],
+    "expertise_integration": string,
+    "tone_guidance": string
+  },
+  "validation_criteria": {
+    "authenticity_checks": string[],
+    "impact_measures": string[],
+    "uniqueness_validators": string[]
+  }
+}
+`;
+
+export const contentGenerationTemplate =`
+# CONTENT GENERATION
+
+[Core Context]
+Character: {{agentName}}
+Background: {{bio}}
+Voice Guidelines: {{postDirections}}
+
+[Strategic Input]
+Recent Knowledge: {{retrievedKnowledge}}
+Selected Strategy: {{selectedStrategy}}
+Opportunities: {{opportunities}}
+
+[Examples & Guidelines]
 {{characterPostExamples}}
 
-**Character Elements Summary:**
-Determine which character traits, backstory elements, and voice characteristics should shape the chosen angle. Pinpoint unique viewpoints and authentic elements that can make {{agentName}}’s contribution stand out.
-
-## [PC] Previous Post Context Analysis
-Pattern Questions:
-- What types of content have we recently shared?
-- Which approaches and topics need rest?
-- What content areas are underexplored?
-- How can we maintain voice while adding variety?
-
-Most Recent Posts by {{agentName}} (@{{twitterUserName}}):
+[Your Most Recent Tweets]
 {{timeline}}
 
-Previous Post Context Review:
-- Content types and themes
-- Voice patterns and tones
-- Topics and perspectives
-- Engagement approaches
+Generate tweet variations that:
+1. Incorporate insights from Recent Knowledge
+2. Follow strategic direction
+3. Match character voice and style
+4. Stay within 280 characters
+5. Provide unique perspectives on the information
+6. Are totally unique from Your Most Recent Tweets
 
-Areas to Avoid:
-- Recently used topics/angles
-- Similar narrative approaches
-- Repeated patterns
-- Overused elements
+For each variation:
+- Focus on key insights from retrieved knowledge
+- Maintain authentic voice
+- Add value to community
+- Consider impact and engagement
 
-**Previous Post Context Summary:**
-Identify which recent themes to avoid, ensuring no redundancy. Highlight any open angles or narrative threads that could be advanced. Note the content areas that remain underexplored and consider how they might align with the current context and character strengths.
-
-# 2. OPPORTUNITY MAPPING
-Building on context and recent activity analysis, evaluate:
-
-Value Questions:
-- What compelling narratives emerge from current context?
-- Which perspectives need more development?
-- What unique angles align with character voice?
-- How can we advance ongoing discussions?
-
-Content Categories:
-1. Information Value
-   - New insights or perspectives
-   - Context and understanding
-   - Novel interpretations
-   - Avoid: Basic repetition, obvious takes
-
-2. Community Value
-   - Cultural contributions
-   - Shared experiences
-   - Relationship building
-   - Avoid: Forced engagement, inauthentic connection
-
-3. Strategic Value
-   - Long-term narrative development
-   - Perspective shaping
-   - Position establishment
-   - Avoid: Generic statements, shallow takes
-
-Pattern Elements:
-- Opening approaches
-- Structure variation
-- Tone modulation
-- Engagement hooks
-
-**Opportunity Mapping Summary:**
-From the insights above, pinpoint the specific narrative threads worth pursuing. Prioritize potential angles that:
-- Provide fresh insight (Information Value)
-- Deepen connection with the community (Community Value)
-- Advance long-term narrative arcs or position {{agentName}} uniquely (Strategic Value)
-
-Note which angles fit the character’s voice and avoid recently used patterns.
-
-# 3. STRATEGY DEVELOPMENT
-Using identified opportunities:
-
-Selection Questions:
-- Which angle best serves the moment (based on identified context and gaps)?
-- How can {{agentName}} deliver unique value informed by their character traits and past posts?
-- What's the most natural, authentic contribution?
-- How does this build on recent activity and avoid repetitive patterns?
-
-Content Requirements:
-- Clear main point
-- Strong context linkage
-- Authentic voice
-- Fresh perspective
-
-Avoid List (Reiterated):
-- Recent approaches from [PC]
-- Common patterns from [PC]
-- Expected takes
-- Forced angles
-
-**Decision Path:**
-Explicitly reference which narratives or insights from [CS], [CE], and [PC] led you to select a particular angle. For example, “Due to emerging market shifts identified in [CS], combined with {{agentName}}’s unique perspective from [CE], and the underexplored angle from [PC], we choose to focus on…”
-
-**Strategy Development Summary:**
-Finalize a single angle or narrative thread that logically follows from the previous sections. Confirm that it differentiates from recent patterns and leverages character authenticity.
-
-# 4. OUTPUT FORMATION
-Building final strategy:
-
-Assessment Questions:
-- Does this chosen angle feel authentic to {{agentName}} as understood from [CE]?
-- Are we adding real value identified in [Opportunity Mapping]?
-- How does this advance broader narratives or address gaps noted in [CS] and [PC]?
-- Will this resonate genuinely with the community context from [providers]?
-
-Topic Selection:
-1. Primary Focus:
-   - Main point/observation
-   - Approach angle
-   - Unique perspective (tie back to character, context, and avoided areas)
-
-2. Supporting Elements:
-   - Relevant context (from [CS])
-   - Character elements (from [CE])
-   - Value delivery (information, community, strategic)
-
-3. Structural Approach:
-   - Opening style (novel hook or tone)
-   - Content flow (clear narrative progression)
-   - Closing element (conclude with authenticity and impact)
-
-**Encourage Prioritization:**
-If multiple topics qualify, choose the one that:
-- Best aligns with long-term narrative arcs (Strategic Value)
-- Adds unique insight (Information Value)
-- Feels truly authentic to {{agentName}} (Character Assessment)
-
-Strategy Package:
-1. Topic: [Specific subject chosen]
-2. Angle: [Perspective tied to character voice and current context]
-3. Value: [Distinct contribution aligning with identified Value Categories]
-4. Voice: [Character elements integrated: tone, style, background]
-5. Pattern: [Chosen structural approach and avoided patterns noted]
-6. Impact: [Intended effect on audience, narrative, and positioning]
-
-Avoid in Execution:
-- Forced elements
-- Unnatural voice
-- Common patterns
-- Generic approaches
-- Predictable takes
-
-**Final Validation Check:**
-Reassess the chosen strategy against initial evaluation questions:
-- Does it address the identified opportunities?
-- Does it leverage {{agentName}}’s unique perspective?
-- Is it both authentic and fresh?
-
-**JSON Output Guidance:**
-Produce a JSON response following the TopicAssessmentResponse interface.  
+Output Format:
 {
-  "topic": "selected_topic_here",
-  "angle": "chosen_angle_here",
-  "value": "articulated_value_here",
-  "voice": "description_of_character_voice_elements",
-  "pattern": "description_of_structural_approach",
-  "impact": "intended_effect_on_audience",
-  "rationale": {
-    "context_based_decision": "explanation_of_how_this_topic_and_angle_were_chosen_based_on_previous_sections",
-    "avoided_elements": "list_of_recently_used_or_inauthentic_approaches_not_chosen",
-    "authenticity_check": "confirmation_that_voice_and_perspective_match_agentName"
+  "variations": [
+    {
+      "content": string,    // The actual tweet text
+      "rationale": string,  // Why this variation works
+      "strengths": string[],
+      "risks": string[]
+    }
+  ],
+  "evaluations": {
+    "authenticity_scores": Record<string, number>,
+    "impact_predictions": Record<string, number>,
+    "risk_assessments": Record<string, string[]>
+  },
+  "recommendation": {
+    "selected_version": string,
+    "justification": string,
+    "confidence_score": number
   }
 }`;
 
+export const finalValidationTemplate = `
+# FINAL VALIDATION
 
-export const tweetGenerationTemplate = `
-# TWEET GENERATION SYSTEM
+[Content Context]
+Selected Content: {{selectedContent}}
+Generation Process: {{processMetadata}}
+Strategy Alignment: {{strategyAlignment}}
 
-Primary Task:
-Leverage the final topic assessment ([TA]), knowledge base ([KB]), and additional context to create an authentic, valuable, and contextually relevant tweet as {{agentName}} (@{{twitterUserName}}).
+[Quality Requirements]
+Character Voice: {{voiceRequirements}}
+Value Delivery: {{valueMetrics}}
+Impact Goals: {{impactMetrics}}
 
-[TA] reflects key insights from:
-- Context State [CS]
-- Character Expression [CE]
-- Previous Post Context [PC]
+${baseValidation}
 
-[KB]:
-Ground your tweet using relevant factual information.
-{{knowledge}}
+Comprehensive validation:
 
-Guiding Principles:
-- The tweet must directly reflect the selected topic, angle, and value identified in [TA].
-- Maintain authenticity by integrating character voice elements from primarily [TA] and secondarily [CS].
-- Respect context insights from primarily [TA] and secondarily [CS].
-- Avoid recently used patterns, topics, or styles noted in primarily [TA] and secondarily [PC].
-- Critically understand the dates of events and facts from [KB] and ensure temporal consistency.
+1. Technical Validation:
+- Character count
+- Format requirements
+- Structural integrity
+- Technical accuracy
 
-# 1. INPUT SYNTHESIS
+2. Character Alignment:
+- Voice authenticity
+- Expertise utilization
+- Perspective consistency
+- Natural engagement
 
-[TA]
-- Selected Topic: {{selectedTopic}}
-- Selected Angle: {{selectedAngle}}
-- Selected Value: {{selectedValue}}
-- Selected Voice Elements: {{selectedVoiceElements}}
-- Selected Pattern: {{selectedPattern}}
-- Intended Impact: {{intendedImpact}}
-- Background Snippets: {{characterBackground}}
-- Core Stories: {{characterLore}}
-- Key Traits: {{characterTraits}}
-- Voice Rules: {{voiceRules}}
-- Topics to Avoid: {{avoidTopics}}
-- Patterns to Avoid: {{avoidPatterns}}
-- Approaches to Avoid: {{avoidApproaches}}
+3. Value Assessment:
+- Information value
+- Community contribution
+- Discussion advancement
+- Impact potential
 
-[CS]
-{{Providers}}
+4. Risk Evaluation:
+- Content risks
+- Voice deviation
+- Value dilution
+- Impact reduction
 
-[CE]
-About {{agentName}}
-Background: {{bio}}
-
-Stories and Lore: 
-{{lore}}
-
-Key Traits: {{adjectives}}
-
-Post Directoins andVoice Rules: 
-{{postDirections}}
-
-Reference Posts by {{agentName}}: 
-{{characterPostExamples}}
-
-[PC]
-{{timeline}}
-
-Critical Checks:
-- Confirm the chosen topic and angle align with {{selectedTopic}} and {{selectedAngle}}.
-- Ensure the tweet’s message delivers the {{selectedValue}}.
-- Integrate character voice per {{selectedVoiceElements}}, {{characterTraits}}, and {{voiceRules}}.
-- Incorporate any relevant real-time context from [CS] that supports the chosen angle, unless previously referenced in [PC].
-- Avoid elements listed in {{avoidTopics}}, {{avoidPatterns}}, and {{avoidApproaches}}.
-
-# 2. CONTENT FRAMEWORK
-Constructing the Tweet:
-1. Opening Hook:
-   - Start with a statement or observation that aligns with {{selectedAngle}} and feels natural given {{characterBackground}} and {{characterLore}}.
-   - Consider a subtle reference to context from [CS] if it enhances relevance.
-
-2. Core Message:
-   - Clearly express the main insight reflecting {{selectedValue}} linked to the {{selectedTopic}} without naming the topic directly if requested.
-   - Ensure it advances the narrative or perspective identified in [TA].
-
-3. Supporting Detail:
-   - Add a fact or subtle hint (from {{contextualFacts}}) to lend credibility and depth.
-   - Reinforce authenticity by reflecting {{characterTraits}} and staying within {{voiceRules}}.
-
-4. Closing Element:
-   - Conclude with a tone or phrase that aligns with the intended impact ({{intendedImpact}}).
-   - No questions, no emojis, concise and final.
-
-# 3. VARIATION EXPLORATION
-Generate Three Variations:
-- Version A (Primary Approach):  
-  *Directly aligned with the selected strategy ({{selectedTopic}}, {{selectedAngle}}, {{selectedValue}}), standard structure.*
-
-- Version B (Alternative Angle):  
-  *Same core message but vary the tone or structure slightly within allowed voice rules, still avoiding {{avoidTopics}}, {{avoidPatterns}}, {{avoidApproaches}}.*
-
-- Version C (Creative Take):  
-  *A more unique phrasing or ordering while maintaining core authenticity and value. Consider a different opening style or narrative twist that still respects all constraints.*
-
-For Each Variation:
-- Verify that it is under 2 sentences.
-- Maintain voice authenticity and no forbidden elements.
-- No explicit reference to the topic if instructed to avoid it.
-- Check consistency with {{selectedVoiceElements}} and {{voiceRules}}.
-
-# 4. REFINEMENT & SELECTION
-Validate Each Variation:
-- Confirm factual accuracy (based on {{contextualFacts}}).
-- Ensure narrative alignment with {{selectedAngle}} and {{selectedValue}}.
-- Check for voice authenticity against {{characterTraits}} and {{voiceRules}}.
-- Confirm distinctness from recently used patterns in {{avoidPatterns}}.
-
-Select the Best Version:
-- Which variation most faithfully executes the chosen strategy from [TA]?
-- Which delivers the clearest value ({{selectedValue}}) and impact ({{intendedImpact}})?
-- Which feels the most natural and authentic to the character, given {{characterBackground}} and {{characterLore}}?
-- Which feels the most differentiated 
-
-# 5. FINAL OUTPUT
-Produce a JSON response following the TweetGenerationResponse interface:
-- Include the selected tweet text.
-- Reference the chosen angle, topic, and value.
-- Briefly explain how this version respects the constraints (e.g., voice, authenticity, avoidance of patterns).
-- Confirm its alignment with the final strategy package from [TA].
+Output Format:
+{
+  "validation_results": {
+    "technical_checks": Record<string, boolean>,
+    "character_alignment": {
+      "voice_score": number,
+      "expertise_score": number,
+      "authenticity_score": number
+    },
+    "value_assessment": {
+      "information_value": number,
+      "community_value": number,
+      "strategic_value": number
+    },
+    "risk_evaluation": {
+      "identified_risks": string[],
+      "mitigation_suggestions": string[]
+    }
+  },
+  "final_recommendation": {
+    "approve": boolean,
+    "changes_needed": string[],
+    "confidence_score": number
+  }
+}
 `;
+
+export interface TemplateMap {
+    planning: typeof planningTemplate;
+    rag: typeof ragTemplate;
+    initialAssessment: typeof initialAssessmentTemplate;
+    strategy: typeof strategyTemplate;
+    contentGeneration: typeof contentGenerationTemplate;
+    finalValidation: typeof finalValidationTemplate;
+}
+
+export const templates: TemplateMap = {
+    planning: planningTemplate,
+    rag: ragTemplate,
+    initialAssessment: initialAssessmentTemplate,
+    strategy: strategyTemplate,
+    contentGeneration: contentGenerationTemplate,
+    finalValidation: finalValidationTemplate
+};

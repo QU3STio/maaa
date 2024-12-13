@@ -2,222 +2,133 @@
 
 import type { Tool } from '@anthropic-ai/sdk/resources/messages';
 
-export const topicAssessmentTool: Tool = {
-    name: "assess_topics",
-    description: "Analyzes current context and character voice to identify authentic content opportunities.",
+const baseValidationSchema = {
+    type: "object",
+    required: ["technical_checks", "character_alignment", "value_assessment", "risk_evaluation"],
+    properties: {
+        technical_checks: {
+            type: "object",
+            additionalProperties: { type: "boolean" }
+        },
+        character_alignment: {
+            type: "object",
+            required: ["voice_score", "expertise_score", "authenticity_score"],
+            properties: {
+                voice_score: { type: "number" },
+                expertise_score: { type: "number" },
+                authenticity_score: { type: "number" }
+            }
+        },
+        value_assessment: {
+            type: "object",
+            required: ["information_value", "community_value", "strategic_value"],
+            properties: {
+                information_value: { type: "number" },
+                community_value: { type: "number" },
+                strategic_value: { type: "number" }
+            }
+        },
+        risk_evaluation: {
+            type: "object",
+            required: ["identified_risks", "mitigation_suggestions"],
+            properties: {
+                identified_risks: {
+                    type: "array",
+                    items: { type: "string" }
+                },
+                mitigation_suggestions: {
+                    type: "array",
+                    items: { type: "string" }
+                }
+            }
+        }
+    }
+};
+
+const errorHandlingSchema = {
+    type: "object",
+    required: ["retry_strategy", "fallback_options", "recovery_steps"],
+    properties: {
+        retry_strategy: {
+            type: "object",
+            required: ["max_attempts", "conditions"],
+            properties: {
+                max_attempts: { type: "number" },
+                conditions: {
+                    type: "array",
+                    items: { type: "string" }
+                }
+            }
+        },
+        fallback_options: {
+            type: "array",
+            items: { type: "string" }
+        },
+        recovery_steps: {
+            type: "array",
+            items: { type: "string" }
+        }
+    }
+};
+
+export const planningTool: Tool = {
+    name: "plan_execution",
+    description: "Plans the tweet generation execution steps",
     input_schema: {
         type: "object",
-        required: ["contextAnalysis", "opportunityMapping", "strategyDevelopment", "outputRecommendation"],
+        required: ["steps", "validation", "error_handling", "metadata"],
         properties: {
-            contextAnalysis: {
-                type: "object",
-                required: ["environment", "character", "recentActivity"],
-                properties: {
-                    environment: {
-                        type: "object",
-                        required: ["updates", "metrics", "social"],
-                        properties: {
-                            updates: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    required: ["type", "content", "timestamp", "impact", "relevance"],
-                                    properties: {
-                                        type: {
-                                            type: "string",
-                                            enum: ["news", "discussion", "development", "announcement"]
-                                        },
-                                        content: { type: "string" },
-                                        timestamp: { type: "string" },
-                                        impact: { type: "number" },
-                                        relevance: {
-                                            type: "array",
-                                            items: { type: "string" }
-                                        }
-                                    }
+            steps: {
+                type: "array",
+                items: {
+                    type: "object",
+                    required: ["id", "type", "template", "requires_rag", "dependencies", "validation", "error_handling", "metadata"],
+                    properties: {
+                        id: { type: "string" },
+                        type: { 
+                            type: "string",
+                            enum: ["planning", "rag", "assessment", "strategy", "generation", "validation"]
+                        },
+                        template: { type: "string" },
+                        requires_rag: { type: "boolean" },
+                        dependencies: {
+                            type: "array",
+                            items: { type: "string" }
+                        },
+                        validation: baseValidationSchema,
+                        error_handling: errorHandlingSchema,
+                        metadata: {
+                            type: "object",
+                            required: ["success_criteria"],
+                            properties: {
+                                estimated_duration: { type: "number" },
+                                required_context: {
+                                    type: "array",
+                                    items: { type: "string" }
+                                },
+                                success_criteria: {
+                                    type: "array",
+                                    items: { type: "string" }
                                 }
-                            },
-                            metrics: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    required: ["category", "metrics", "context"],
-                                    properties: {
-                                        category: { type: "string" },
-                                        metrics: {
-                                            type: "array",
-                                            items: {
-                                                type: "object",
-                                                required: ["name", "value", "trend", "timestamp"],
-                                                properties: {
-                                                    name: { type: "string" },
-                                                    value: { type: "number" },
-                                                    trend: { type: "string" },
-                                                    timestamp: { type: "string" }
-                                                }
-                                            }
-                                        },
-                                        context: { type: "string" }
-                                    }
-                                }
-                            },
-                            social: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    required: ["type", "content", "source", "timestamp", "significance"],
-                                    properties: {
-                                        type: {
-                                            type: "string",
-                                            enum: ["sentiment", "discussion", "cultural", "narrative"]
-                                        },
-                                        content: { type: "string" },
-                                        source: { type: "string" },
-                                        timestamp: { type: "string" },
-                                        significance: { type: "number" }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    character: {
-                        type: "object",
-                        required: ["relevantTraits", "naturalPerspective", "authenticValue"],
-                        properties: {
-                            relevantTraits: {
-                                type: "array",
-                                items: { type: "string" }
-                            },
-                            naturalPerspective: { type: "string" },
-                            authenticValue: { type: "string" }
-                        }
-                    },
-                    recentActivity: {
-                        type: "object",
-                        required: ["patterns", "avoidList"],
-                        properties: {
-                            patterns: {
-                                type: "object",
-                                required: ["contentTypes", "voicePatterns", "topics", "engagementApproaches", "timestamp"],
-                                properties: {
-                                    contentTypes: { type: "array", items: { type: "string" } },
-                                    voicePatterns: { type: "array", items: { type: "string" } },
-                                    topics: { type: "array", items: { type: "string" } },
-                                    engagementApproaches: { type: "array", items: { type: "string" } },
-                                    timestamp: { type: "string" }
-                                }
-                            },
-                            avoidList: {
-                                type: "array",
-                                items: { type: "string" }
                             }
                         }
                     }
                 }
             },
-            opportunityMapping: {
+            validation: baseValidationSchema,
+            error_handling: errorHandlingSchema,
+            metadata: {
                 type: "object",
-                required: ["identified", "priorityScore", "narrativeAlignment"],
+                required: ["estimated_duration", "required_context", "success_criteria"],
                 properties: {
-                    identified: {
+                    estimated_duration: { type: "number" },
+                    required_context: {
                         type: "array",
-                        items: {
-                            type: "object",
-                            required: ["category", "value", "suitability"],
-                            properties: {
-                                category: {
-                                    type: "string",
-                                    enum: ["information", "community", "strategic"]
-                                },
-                                value: {
-                                    type: "object",
-                                    required: ["primary", "supporting", "uniqueAngle"],
-                                    properties: {
-                                        primary: { type: "string" },
-                                        supporting: { type: "array", items: { type: "string" } },
-                                        uniqueAngle: { type: "string" }
-                                    }
-                                },
-                                suitability: {
-                                    type: "object",
-                                    required: ["characterFit", "timeliness", "freshness"],
-                                    properties: {
-                                        characterFit: { type: "number" },
-                                        timeliness: { type: "number" },
-                                        freshness: { type: "number" }
-                                    }
-                                }
-                            }
-                        }
+                        items: { type: "string" }
                     },
-                    priorityScore: { type: "number" },
-                    narrativeAlignment: { type: "string" }
-                }
-            },
-            strategyDevelopment: {
-                type: "object",
-                required: ["selected", "avoidList", "reasoningPath"],
-                properties: {
-                    selected: {
-                        type: "object",
-                        required: ["topic", "structure", "voice", "impact"],
-                        properties: {
-                            topic: {
-                                type: "object",
-                                required: ["main", "angle", "perspective"],
-                                properties: {
-                                    main: { type: "string" },
-                                    angle: { type: "string" },
-                                    perspective: { type: "string" }
-                                }
-                            },
-                            structure: {
-                                type: "object",
-                                required: ["opening", "flow", "close"],
-                                properties: {
-                                    opening: { type: "string" },
-                                    flow: { type: "string" },
-                                    close: { type: "string" }
-                                }
-                            },
-                            voice: {
-                                type: "object",
-                                required: ["elements", "tonality", "authenticity"],
-                                properties: {
-                                    elements: { type: "array", items: { type: "string" } },
-                                    tonality: { type: "string" },
-                                    authenticity: { type: "number" }
-                                }
-                            },
-                            impact: {
-                                type: "object",
-                                required: ["intended", "potential", "measurement"],
-                                properties: {
-                                    intended: { type: "string" },
-                                    potential: { type: "string" },
-                                    measurement: { type: "string" }
-                                }
-                            }
-                        }
-                    },
-                    avoidList: { type: "array", items: { type: "string" } },
-                    reasoningPath: { type: "array", items: { type: "string" } }
-                }
-            },
-            outputRecommendation: {
-                type: "object",
-                required: ["topic", "strategy", "execution"],
-                properties: {
-                    topic: { type: "string" },
-                    strategy: { type: "string" },
-                    execution: {
-                        type: "object",
-                        required: ["approach", "guidelines", "cautions"],
-                        properties: {
-                            approach: { type: "string" },
-                            guidelines: { type: "array", items: { type: "string" } },
-                            cautions: { type: "array", items: { type: "string" } }
-                        }
+                    success_criteria: {
+                        type: "array",
+                        items: { type: "string" }
                     }
                 }
             }
@@ -225,140 +136,292 @@ export const topicAssessmentTool: Tool = {
     }
 };
 
-export const tweetGenerationTool: Tool = {
-    name: "generate_tweet",
-    description: "Generates a tweet based on the provided context and strategy.",
+export const ragTool: Tool = {
+    name: "generate_rag_query",
+    description: "Generates a knowledge retrieval query",
     input_schema: {
         type: "object",
-        required: ["contextAnalysis", "strategyDevelopment", "contentValidation", "outputGeneration"],
+        required: ["query", "focus_areas", "expected_use", "relevance_criteria", "validation"],
         properties: {
-            contextAnalysis: {
-                type: "object",
-                required: ["inputSynthesis", "contentFramework"],
-                properties: {
-                    inputSynthesis: {
-                        type: "object",
-                        required: ["selectedTopic", "selectedAngle", "characterVoice", "contextualFactors"],
-                        properties: {
-                            selectedTopic: { type: "string" },
-                            selectedAngle: { type: "string" },
-                            characterVoice: {
-                                type: "object",
-                                required: ["traits", "rules", "examples"],
-                                properties: {
-                                    traits: { type: "array", items: { type: "string" } },
-                                    rules: { type: "array", items: { type: "string" } },
-                                    examples: { type: "array", items: { type: "string" } }
-                                }
-                            },
-                            contextualFactors: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    required: ["type", "content", "relevance"],
-                                    properties: {
-                                        type: { type: "string" },
-                                        content: { type: "string" },
-                                        relevance: { type: "number" }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    contentFramework: {
-                        type: "object",
-                        required: ["structure", "constraints"],
-                        properties: {
-                            structure: {
-                                type: "object",
-                                required: ["opening", "core", "closing"],
-                                properties: {
-                                    opening: { type: "string" },
-                                    core: { type: "string" },
-                                    closing: { type: "string" }
-                                }
-                            },
-                            constraints: {
-                                type: "object",
-                                required: ["characterLimit", "avoidList", "requiredElements"],
-                                properties: {
-                                    characterLimit: { type: "number" },
-                                    avoidList: { type: "array", items: { type: "string" } },
-                                    requiredElements: { type: "array", items: { type: "string" } }
-                                }
-                            }
-                        }
-                    }
-                }
+            query: { type: "string" },
+            focus_areas: {
+                type: "array",
+                items: { type: "string" }
             },
-            strategyDevelopment: {
+            expected_use: { type: "string" },
+            relevance_criteria: {
                 type: "object",
-                required: ["variations", "selection"],
+                required: ["mustHave", "niceToHave", "avoid"],
                 properties: {
-                    variations: {
+                    mustHave: {
                         type: "array",
-                        items: {
-                            type: "object",
-                            required: ["version", "text", "rationale"],
-                            properties: {
-                                version: {
-                                    type: "string",
-                                    enum: ["A", "B", "C"]
-                                },
-                                text: { type: "string" },
-                                rationale: { type: "string" }
-                            }
-                        }
+                        items: { type: "string" }
                     },
-                    selection: {
-                        type: "object",
-                        required: ["chosenVersion", "justification"],
-                        properties: {
-                            chosenVersion: {
-                                type: "string",
-                                enum: ["A", "B", "C"]
-                            },
-                            justification: { type: "string" }
-                        }
+                    niceToHave: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    avoid: {
+                        type: "array",
+                        items: { type: "string" }
                     }
                 }
             },
-            contentValidation: {
+            validation: {
                 type: "object",
-                required: ["factualAccuracy", "voiceAuthenticity", "contextAlignment", "uniqueness"],
+                required: ["completeness_checks", "accuracy_requirements", "relevance_metrics"],
                 properties: {
-                    factualAccuracy: { type: "string" },
-                    voiceAuthenticity: { type: "string" },
-                    contextAlignment: { type: "string" },
-                    uniqueness: { type: "string" }
-                }
-            },
-            outputGeneration: {
-                type: "object",
-                required: ["finalTweet", "metadata"],
-                properties: {
-                    finalTweet: {
-                        type: "object",
-                        required: ["text", "version"],
-                        properties: {
-                            text: { type: "string" },
-                            version: {
-                                type: "string",
-                                enum: ["A", "B", "C"]
-                            }
-                        }
+                    completeness_checks: {
+                        type: "array",
+                        items: { type: "string" }
                     },
-                    metadata: {
-                        type: "object",
-                        required: ["characterCount", "contextualReferences", "avoidedElements"],
-                        properties: {
-                            characterCount: { type: "number" },
-                            contextualReferences: { type: "array", items: { type: "string" } },
-                            avoidedElements: { type: "array", items: { type: "string" } }
-                        }
+                    accuracy_requirements: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    relevance_metrics: {
+                        type: "array",
+                        items: { type: "string" }
                     }
                 }
             }
         }
     }
 };
+
+export const assessmentTool: Tool = {
+    name: "initial_assessment",
+    description: "Performs initial context and opportunity assessment",
+    input_schema: {
+        type: "object",
+        required: ["opportunities", "knowledge_needs", "character_alignment"],
+        properties: {
+            opportunities: {
+                type: "object",
+                required: ["identified", "prioritization"],
+                properties: {
+                    identified: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            required: ["type", "description", "value", "feasibility"],
+                            properties: {
+                                type: { type: "string" },
+                                description: { type: "string" },
+                                value: { type: "number" },
+                                feasibility: { type: "number" }
+                            }
+                        }
+                    },
+                    prioritization: {
+                        type: "object",
+                        required: ["criteria", "rankings"],
+                        properties: {
+                            criteria: {
+                                type: "array",
+                                items: { type: "string" }
+                            },
+                            rankings: {
+                                type: "object",
+                                additionalProperties: { type: "number" }
+                            }
+                        }
+                    }
+                }
+            },
+            knowledge_needs: {
+                type: "object",
+                required: ["gaps", "verification_needs", "context_requirements"],
+                properties: {
+                    gaps: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    verification_needs: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    context_requirements: {
+                        type: "array",
+                        items: { type: "string" }
+                    }
+                }
+            },
+            character_alignment: {
+                type: "object",
+                required: ["natural_angles", "voice_considerations", "expertise_utilization"],
+                properties: {
+                    natural_angles: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    voice_considerations: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    expertise_utilization: {
+                        type: "array",
+                        items: { type: "string" }
+                    }
+                }
+            }
+        }
+    }
+};
+
+export const strategyTool: Tool = {
+    name: "develop_strategy",
+    description: "Develops content strategy based on assessment and knowledge",
+    input_schema: {
+        type: "object",
+        required: ["selected_strategy", "voice_plan", "validation_criteria"],
+        properties: {
+            selected_strategy: {
+                type: "object",
+                required: ["angle", "rationale", "key_points", "structure"],
+                properties: {
+                    angle: { type: "string" },
+                    rationale: { type: "string" },
+                    key_points: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    structure: {
+                        type: "object",
+                        required: ["opening", "development", "conclusion"],
+                        properties: {
+                            opening: { type: "string" },
+                            development: { type: "string" },
+                            conclusion: { type: "string" }
+                        }
+                    }
+                }
+            },
+            voice_plan: {
+                type: "object",
+                required: ["traits_to_emphasize", "expertise_integration", "tone_guidance"],
+                properties: {
+                    traits_to_emphasize: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    expertise_integration: { type: "string" },
+                    tone_guidance: { type: "string" }
+                }
+            },
+            validation_criteria: {
+                type: "object",
+                required: ["authenticity_checks", "impact_measures", "uniqueness_validators"],
+                properties: {
+                    authenticity_checks: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    impact_measures: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    uniqueness_validators: {
+                        type: "array",
+                        items: { type: "string" }
+                    }
+                }
+            }
+        }
+    }
+};
+
+export const contentGenerationTool: Tool = {
+    name: "generate_content",
+    description: "Generates tweet variations based on strategy",
+    input_schema: {
+        type: "object",
+        required: ["variations", "evaluations", "recommendation"],
+        properties: {
+            variations: {
+                type: "array",
+                items: {
+                    type: "object",
+                    required: ["content", "rationale", "strengths", "risks"],
+                    properties: {
+                        content: { type: "string" },
+                        rationale: { type: "string" },
+                        strengths: {
+                            type: "array",
+                            items: { type: "string" }
+                        },
+                        risks: {
+                            type: "array",
+                            items: { type: "string" }
+                        }
+                    }
+                }
+            },
+            evaluations: {
+                type: "object",
+                required: ["authenticity_scores", "impact_predictions", "risk_assessments"],
+                properties: {
+                    authenticity_scores: {
+                        type: "object",
+                        additionalProperties: { type: "number" }
+                    },
+                    impact_predictions: {
+                        type: "object",
+                        additionalProperties: { type: "number" }
+                    },
+                    risk_assessments: {
+                        type: "object",
+                        additionalProperties: {
+                            type: "array",
+                            items: { type: "string" }
+                        }
+                    }
+                }
+            },
+            recommendation: {
+                type: "object",
+                required: ["selected_version", "justification", "confidence_score"],
+                properties: {
+                    selected_version: { type: "string" },
+                    justification: { type: "string" },
+                    confidence_score: { type: "number" }
+                }
+            }
+        }
+    }
+};
+
+export const validationTool: Tool = {
+    name: "validate_content",
+    description: "Performs final validation of the generated content",
+    input_schema: {
+        type: "object",
+        required: ["validation_results", "final_recommendation"],
+        properties: {
+            validation_results: baseValidationSchema,
+            final_recommendation: {
+                type: "object",
+                required: ["approve", "changes_needed", "confidence_score"],
+                properties: {
+                    approve: { type: "boolean" },
+                    changes_needed: {
+                        type: "array",
+                        items: { type: "string" }
+                    },
+                    confidence_score: { type: "number" }
+                }
+            }
+        }
+    }
+};
+
+export const tools = {
+    planning: planningTool,
+    rag: ragTool,
+    assessment: assessmentTool,
+    strategy: strategyTool,
+    generation: contentGenerationTool,
+    validation: validationTool
+} as const;
+
+export type ToolType = keyof typeof tools;
