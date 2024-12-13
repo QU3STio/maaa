@@ -11,8 +11,7 @@ import { elizaLogger } from "@ai16z/eliza";
 import { ClientBase } from "./base";
 import { 
     TweetGenerationResponse, 
-    TopicAssessmentResponse, 
-    AssessmentMetadata,
+    TopicAssessmentResponse,
     TweetGenerationMetadata 
 } from "./types";
 import { tweetGenerationTool, topicAssessmentTool } from "./tools";
@@ -23,6 +22,8 @@ import {
     tweetGenerationTemplate,
     topicAssessmentTemplate,
 } from "./templates";
+import util from 'util';
+
 
 const MAX_TWEET_LENGTH = 280;
 
@@ -55,6 +56,7 @@ export class TwitterPostClient {
     runtime: IAgentRuntime;
     anthropicClient: Anthropic;
     useCOT: boolean;
+    terminalUrl: string;
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -63,6 +65,47 @@ export class TwitterPostClient {
             apiKey: this.runtime.getSetting("ANTHROPIC_API_KEY")
         });
         this.useCOT = this.runtime.getSetting("twitter_post_cot") === "true";
+        this.terminalUrl = this.runtime.getSetting("TERMINAL_URL");
+        if (!this.terminalUrl) {
+            elizaLogger.warn("TERMINAL_URL not set - terminal streaming will be disabled");
+        }
+    }
+
+    private async streamToTerminal(type: 'ACTION' | 'THOUGHT', content: string, id: string) {
+        if (!this.terminalUrl) return;
+    
+        try {
+            const agentId = this.runtime.getSetting("AGENT_ID");
+            if (!agentId) {
+                throw new Error('Agent ID not available');
+            }
+    
+            // Create a precise ISO timestamp
+            const timestamp = new Date().toISOString();
+            
+            const logEntry = {
+                type,
+                content,
+                timestamp,
+                id: `${type.toLowerCase()}-${timestamp}`,
+                processId: id
+            };
+    
+            const response = await fetch(`${this.terminalUrl}/api/terminal/${agentId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(logEntry)
+            });
+    
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to stream to terminal: ${response.status} ${response.statusText}\nResponse: ${errorText}`);
+            }
+        } catch (error) {
+            elizaLogger.error("Error streaming to terminal:", error);
+        }
     }
 
     async start(postImmediately: boolean = false) {
@@ -125,6 +168,7 @@ export class TwitterPostClient {
     }
 
     private async generateSimpleTweet(): Promise<string> {
+        const processId = `tweet-${Date.now()}`;
         const roomId = stringToUuid(
             "twitter_generate_room-" + this.client.profile.username
         );
@@ -155,10 +199,24 @@ export class TwitterPostClient {
         const newTweetContent = await generateText({
             runtime: this.runtime,
             context,
-            modelClass: ModelClass.SMALL,
+            modelClass: ModelClass.MEDIUM,
         });
 
-        return newTweetContent.replaceAll(/\\n/g, "\n").trim();
+        const content = newTweetContent.replaceAll(/\\n/g, "\n").trim();
+
+        await this.streamToTerminal(
+            'ACTION',
+            content,
+            processId
+        );
+
+        await this.streamToTerminal(
+            'THOUGHT',
+            'Generated using simple tweet template without chain-of-thought reasoning.',
+            processId
+        );
+
+        return content;
     }
 
     private async assessTopics(): Promise<TopicAssessmentResponse> {
@@ -233,9 +291,13 @@ export class TwitterPostClient {
 
     private async generateChainOfThoughtTweet(): Promise<string> {
         try {
+            const processId = `tweet-${Date.now()}`;
+
+            // First assessment step
             const topicAssessment = await this.assessTopics();
             const assessmentData = ResponseValidator.extractAssessmentData(topicAssessment);
-            
+
+
             // Map assessment data to tweet generation state
             const tweetGenerationState = {
                 selectedTopic: assessmentData.topic,
@@ -287,8 +349,8 @@ export class TwitterPostClient {
             });
 
             const response = await this.anthropicClient.messages.create({
-                model: "claude-3-5-sonnet-20241022",
-                max_tokens: 8192,
+                model: "claude-3-opus-20240229",
+                max_tokens: 4096,
                 messages: [{ role: "user", content: context }],
                 tools: [tweetGenerationTool],
                 tool_choice: { type: "tool", name: "generate_tweet" }
@@ -310,6 +372,27 @@ export class TwitterPostClient {
                 throw new ValidationError("No valid tweet content in response");
             }
 
+            // Stream the tweet as an ACTION
+            await this.streamToTerminal(
+                'ACTION',
+                tweetResponse.outputGeneration.finalTweet.text,
+                processId
+            );
+
+                        // Stream assessment data as a THOUGHT
+            await this.streamToTerminal(
+                'THOUGHT',
+                `Topic Assessment:\n${util.inspect(assessmentData, { depth: null, colors: true })}`,
+                processId
+            );
+
+            // Stream generation metadata as a THOUGHT
+            await this.streamToTerminal(
+                'THOUGHT',
+                `Tweet Generation:\n${util.inspect(tweetResponse, { depth: null, colors: true })}`,
+                processId
+            );
+
             const metadata: TweetGenerationMetadata = {
                 timestamp: Date.now(),
                 assessment: assessmentData,
@@ -325,14 +408,7 @@ export class TwitterPostClient {
             return tweetResponse.outputGeneration.finalTweet.text;
 
         } catch (error) {
-            elizaLogger.error("Error in chain of thought tweet generation:", {
-                error: error instanceof ValidationError ? error.message : 'Unknown error',
-                context: error instanceof ValidationError ? error.context : undefined,
-                stack: error instanceof Error ? error.stack : undefined
-            });
-            
-            // Fall back to simple tweet generation
-            elizaLogger.info("Falling back to simple tweet generation");
+            elizaLogger.error("Error in chain of thought tweet generation:", error);
             return this.generateSimpleTweet();
         }
     }
