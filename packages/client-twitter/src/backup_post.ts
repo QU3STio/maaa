@@ -105,29 +105,6 @@ function gatherDependencyOutputs(step: ExecutionStep, results: Map<string, StepR
     return outputs;
 }
 
-interface EnrichedState extends State {
-    // Assessment results
-    opportunities?: string;
-    key_points?: string;
-    voice_elements?: string;
-    
-    // Generation results
-    generated_tweet?: string;
-    tweet_rationale?: string;
-    metrics_used?: string;
-    
-    // Validation results
-    validation_scores?: {
-        voice_match: number;
-        factual_accuracy: number;
-    };
-    validation_issues?: string;
-    validation_approved?: boolean;
-
-    // Allow for step results to be stored
-    [key: string]: any;
-}
-
 
 // Type guards with consistent property normalization
 function isGenerationResult(output: any): output is GenerationResult {
@@ -154,162 +131,26 @@ function isAssessmentResult(output: any): output is AssessmentResult {
            Array.isArray(data.voice_elements);
 }
 
-function flattenObject(obj: Record<string, any>, prefix = ''): Record<string, any> {
-    return Object.keys(obj).reduce((acc: Record<string, any>, key: string) => {
-        const value = obj[key];
-        const newKey = prefix ? `${prefix}_${key}` : key;
-        
-        if (value && typeof value === 'object' && !Array.isArray(value)) {
-            Object.assign(acc, flattenObject(value, newKey));
-        } else if (Array.isArray(value)) {
-            acc[newKey] = value.join('\n');
-        } else {
-            acc[newKey] = value;
-        }
-        
-        return acc;
-    }, {});
-}
-
-// Helper to process step results into template variables
-function processStepResult(result: any, prefix: string): Record<string, any> {
-    const processed: Record<string, any> = {};
-    
-    if (!result) return processed;
-
-    // Handle assessment results
-    if ('opportunities' in result) {
-        processed[`${prefix}_opportunities`] = Array.isArray(result.opportunities) ?
-            result.opportunities.map((o: any) => `${o.topic}: ${o.reason}`).join('\n') :
-            '';
-        processed[`${prefix}_key_points`] = Array.isArray(result.key_points) ?
-            result.key_points.join('\n') :
-            '';
-        processed[`${prefix}_voice_elements`] = Array.isArray(result.voice_elements) ?
-            result.voice_elements.join('\n') :
-            '';
-    }
-
-    // Handle generation results
-    if ('tweet' in result) {
-        processed[`${prefix}_tweet`] = result.tweet;
-        processed[`${prefix}_rationale`] = result.rationale;
-        processed[`${prefix}_metrics`] = Array.isArray(result.metrics_used) ?
-            result.metrics_used.join('\n') :
-            '';
-    }
-
-    // Handle validation results
-    if ('scores' in result) {
-        processed[`${prefix}_scores`] = result.scores;
-        processed[`${prefix}_issues`] = Array.isArray(result.issues) ?
-            result.issues.join('\n') :
-            '';
-        processed[`${prefix}_approved`] = result.approved;
-    }
-
-    return processed;
-}
-
-export const composeContext = ({
+const composeContext = ({
     state,
     template,
 }: {
     state: State;
     template: string;
 }) => {
-    const templateVars = template.match(/{{\w+}}/g) || [];
-    elizaLogger.info("Template variables requested", {
-        vars: templateVars,
-        availableKeys: Object.keys(state)
-    });
-
-    // Create flattened state with processed results
-    const flattenedState: Record<string, any> = { ...state };
-
-    // Process step results
-    Object.entries(state).forEach(([key, value]) => {
-        if (key.endsWith('_result') && value) {
-            const prefix = key.replace('_result', '');
-            const processedResult = processStepResult(value, prefix);
-            Object.assign(flattenedState, processedResult);
-        }
-    });
-
-    // Flatten any remaining nested objects
-    const finalState = flattenObject(flattenedState);
-
     const out = template.replace(/{{\w+}}/g, (match) => {
         const key = match.replace(/{{|}}/g, "");
-        const value = finalState[key];
-        
-        elizaLogger.info("Template replacement", {
-            key,
-            hasValue: value !== undefined,
-            value: value ?? ""
-        });
-
-        return String(value ?? "");
+        const value = state[key];
+        return String(value ?? "");  // Explicitly convert to string
     });
-
     return out;
 };
-
-export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
 interface StepStateComposer {
     baseState: State;
     dependencyOutputs: Record<string, any>;
     step: ExecutionStep;
     timeline: Tweet[];
-}
-
-interface BaseState {
-    agentId?: UUID;
-    userId?: UUID;
-    bio: string;
-    lore: string;
-    messageDirections: string;
-    postDirections: string;
-    knowledge?: string;
-    timeline?: string;
-}
-
-interface PlanningState extends BaseState {
-    plan?: ExecutionPlan;
-}
-
-interface StepState extends PlanningState {
-    stepResults: Record<string, StepResult>;
-}
-
-class StateManager {
-    private currentState: State;
-    
-    constructor(initialState: State) {
-        this.currentState = initialState;
-        elizaLogger.info("StateManager initialized", {
-            initialStateKeys: Object.keys(initialState)
-        });
-    }
-
-    updateState(newData: Partial<State>): State {
-        this.currentState = {
-            ...this.currentState,
-            ...newData
-        };
-        
-        elizaLogger.info("State updated", {
-            updatedKeys: Object.keys(newData),
-            newStateKeys: Object.keys(this.currentState)
-        });
-        
-        return this.currentState;
-    }
-
-    getCurrentState(): State {
-        return this.currentState;
-    }
 }
 
 export class TwitterPostClient {
@@ -339,12 +180,6 @@ export class TwitterPostClient {
             elizaLogger.warn("TERMINAL_URL not set - terminal streaming will be disabled");
         }
     }
-
-    private readonly toolNameMap = {
-        'assessment': 'assess_context',
-        'generation': 'generate_tweet',
-        'validation': 'validate_tweet'
-    } as const;
 
     private async streamToTerminal(
         type: 'ACTION' | 'THOUGHT' | 'ERROR' | 'PLAN_MODIFICATION',
@@ -441,139 +276,108 @@ export class TwitterPostClient {
         return state;
     }
 
-    private async composeStepState({
-        baseState,
-        dependencyOutputs,
-        step,
-        timeline,
-    }: {
-        baseState: State;
-        dependencyOutputs: Record<string, any>;
-        step: ExecutionStep;
-        timeline: any[];
-    }): Promise<EnrichedState> {
+    private async composeStepState({ 
+        baseState, 
+        dependencyOutputs, 
+        step, 
+        timeline 
+    }: StepStateComposer): Promise<State> {
         elizaLogger.info("Composing step state", {
             stepId: step.id,
             stepType: step.type,
             dependencyCount: Object.keys(dependencyOutputs).length
         });
-    
-        // Start with the base state
-        const enrichedState: EnrichedState = {
+
+        const enrichedState = {
             ...baseState,
-            timeline: Array.isArray(timeline) ? timeline.join('\n') : ''
+            timeline: await this.formatTweets(timeline, `${baseState.agentName}'s Timeline`),
         };
-    
-        // Process dependency outputs and flatten them
-        Object.entries(dependencyOutputs).forEach(([stepId, output]) => {
+
+        // Transform dependency outputs with property normalization
+        const dependencyState = Object.entries(dependencyOutputs).reduce((acc, [stepId, output]) => {
+            const normalizedOutput = output?.properties || output?.input?.properties || output;
             const prefix = stepId.replace(/-/g, '_');
             
-            elizaLogger.debug("Processing dependency output", {
-                stepId,
-                prefix,
-                outputType: typeof output,
-                outputKeys: output ? Object.keys(output) : []
-            });
-    
-            // Store the raw output
-            enrichedState[`${prefix}_result`] = output;
+            // Store raw output
+            acc[stepId] = normalizedOutput;
             
-            // Flatten key properties to top level for template access
-            if (output && typeof output === 'object') {
-                if ('opportunities' in output) {
-                    enrichedState.opportunities = Array.isArray(output.opportunities) ?
-                        output.opportunities.map((o: any) => `${o.topic}: ${o.reason}`).join('\n') :
-                        '';
+            if (normalizedOutput && typeof normalizedOutput === 'object') {
+                // Assessment outputs
+                if ('key_points' in normalizedOutput) {
+                    acc[`${prefix}_key_points`] = Array.isArray(normalizedOutput.key_points) 
+                        ? normalizedOutput.key_points.join('\n')
+                        : '';
                 }
-                if ('key_points' in output) {
-                    enrichedState.key_points = Array.isArray(output.key_points) ?
-                        output.key_points.join('\n') :
-                        '';
+                if ('opportunities' in normalizedOutput) {
+                    acc[`${prefix}_opportunities`] = Array.isArray(normalizedOutput.opportunities)
+                        ? normalizedOutput.opportunities.map(o => `${o.topic}: ${o.reason}`).join('\n')
+                        : '';
                 }
-                if ('voice_elements' in output) {
-                    enrichedState.voice_elements = Array.isArray(output.voice_elements) ?
-                        output.voice_elements.join('\n') :
-                        '';
+                
+                // Generation outputs
+                if ('tweet' in normalizedOutput) {
+                    acc[`${prefix}_tweet`] = String(normalizedOutput.tweet);
                 }
-                if ('tweet' in output) {
-                    enrichedState.generated_tweet = String(output.tweet);
-                    enrichedState.tweet_rationale = String(output.rationale || '');
-                    enrichedState.metrics_used = Array.isArray(output.metrics_used) ?
-                        output.metrics_used.join('\n') :
-                        '';
+                if ('rationale' in normalizedOutput) {
+                    acc[`${prefix}_rationale`] = String(normalizedOutput.rationale);
                 }
-                if ('scores' in output) {
-                    enrichedState.validation_scores = output.scores;
-                    enrichedState.validation_issues = Array.isArray(output.issues) ?
-                        output.issues.join('\n') :
-                        '';
-                    enrichedState.validation_approved = Boolean(output.approved);
+                
+                // Validation outputs
+                if ('scores' in normalizedOutput) {
+                    acc[`${prefix}_scores`] = normalizedOutput.scores;
                 }
             }
-    
-            elizaLogger.debug("Dependency state processed", {
-                stepId,
-                enrichedKeys: Object.keys(enrichedState)
-            });
-        });
-    
+            
+            return acc;
+        }, {} as Record<string, any>);
+
+        const finalState = {
+            ...enrichedState,
+            ...dependencyState,
+            previousResults: dependencyOutputs
+        };
+
         elizaLogger.info("Step state composed", {
             stepId: step.id,
-            availableTemplateVars: Object.keys(enrichedState)
+            availableTemplateVars: Object.keys(finalState),
+            dependencyKeys: Object.keys(dependencyOutputs)
         });
-    
-        return enrichedState;
+
+        elizaLogger.info(`Final state for ${step.id}:`, finalState);
+
+        return finalState;
     }
 
     private async composeStepContext(
         step: ExecutionStep,
         baseContext: State,
-        dependencyOutputs: Record<string, any>,
-        timeline: string[]
+        dependencyOutputs: Record<string, any>
     ): Promise<string> {
         elizaLogger.info("Composing step context", {
             stepId: step.id,
-            stepType: step.type,
-            dependencyCount: Object.keys(dependencyOutputs).length,
-            timelineLength: timeline.length
+            stepType: step.type
         });
-    
-        // Get step state with timeline
+
+        const allTweets = [
+            ...(await this.client.getCachedTimeline() || []),
+            ...(await this.client.getCachedDryRunTweets() || [])
+        ].sort((a, b) => b.timestamp - a.timestamp);
+
         const stepState = await this.composeStepState({
             baseState: baseContext,
             dependencyOutputs,
             step,
-            timeline
+            timeline: allTweets
         });
-    
-        // When validating, ensure key_points from assessment are available
-        if (step.type === 'validation') {
-            const assessmentResult = baseContext.assess_tweet_context_result as AssessmentResult | undefined;
-            
-            if (assessmentResult && 'key_points' in assessmentResult) {
-                stepState.key_points = Array.isArray(assessmentResult.key_points) ?
-                    assessmentResult.key_points.join('\n') :
-                    '';
-                
-                elizaLogger.debug("Added assessment key points to validation context", {
-                    hasKeyPoints: !!stepState.key_points
-                });
-            } else {
-                elizaLogger.warn("Assessment result not found or missing key points", {
-                    hasAssessmentResult: !!assessmentResult,
-                    resultType: assessmentResult ? typeof assessmentResult : 'undefined'
-                });
-            }
-        }
-    
+
         const templateKey = step.type as keyof typeof templates;
         const template = templates[templateKey] || step.template;
-    
+
         // Validate template variables
         const templateVars = template.match(/{{([^}]+)}}/g)?.map(v => 
             v.replace(/[{}]/g, '').trim()
         ) || [];
-    
+
         const missingVars = templateVars.filter(v => !(v in stepState));
         if (missingVars.length > 0) {
             elizaLogger.warn("Missing template variables", {
@@ -582,19 +386,22 @@ export class TwitterPostClient {
                 availableVars: Object.keys(stepState)
             });
         }
-    
+
+        elizaLogger.info(`Step state used for step: ${step.id}:`, stepState);
+
         const context = composeContext({
             state: stepState,
             template
         });
-    
+
         elizaLogger.info("Step context composed", {
             stepId: step.id,
             templateVarsFound: templateVars.length,
-            templateVarsMissing: missingVars.length,
-            contextLength: context.length
+            templateVarsMissing: missingVars.length
         });
-    
+
+        elizaLogger.info(`Prompt Combed by for step: ${step.id}`, context);
+
         return context;
     }
 
@@ -643,125 +450,210 @@ export class TwitterPostClient {
         });
     }
 
-    private extractStepResult(response: any): any {
-        if (response?.content) {
-            for (const content of response.content) {
-                if (content.type === "tool_use") {
-                    const data = content.input;
-                    return data?.properties || data?.input?.properties || data;
-                }
-            }
-        }
-        return response;
-    }
-
     private async executeStep(
         step: ExecutionStep,
-        state: State
+        context: State,
+        results: Map<string, StepResult>,
+        metadata: ReturnType<typeof this.initializeProcessMetadata>
     ): Promise<StepResult> {
         const startTime = Date.now();
         
         elizaLogger.info("Starting step execution", {
             stepId: step.id,
             stepType: step.type,
-            stateKeys: Object.keys(state),
-            timestamp: startTime
+            dependencies: step.dependencies
         });
-    
-        // Gather dependency outputs
-        const dependencyOutputs: Record<string, any> = {};
-        for (const depId of step.dependencies) {
-            const result = state[`${depId}_result`];
-            if (result) {
-                elizaLogger.debug("Found dependency result", {
-                    dependencyId: depId,
-                    resultType: typeof result,
-                    resultKeys: Object.keys(result)
-                });
-                dependencyOutputs[depId] = result;
-            } else {
-                elizaLogger.warn("Missing dependency result", {
+        
+        try {
+            const dependencyOutputs = gatherDependencyOutputs(step, results);
+            
+            const missingDeps = step.dependencies.filter(depId => !results.has(depId));
+            if (missingDeps.length > 0) {
+                elizaLogger.warn("Missing dependencies", {
                     stepId: step.id,
-                    dependencyId: depId
+                    missingDeps
                 });
             }
-        }
     
-        // Get timeline from state
-        let timeline = [];
-        if (typeof state.timeline === 'string' && state.timeline.trim()) {
-            timeline = state.timeline.split('\n');
-            elizaLogger.debug("Retrieved timeline from state", {
-                timelineLength: timeline.length
-            });
-        }
-    
-        // Compose the context with dependencies and timeline
-        const context = await this.composeStepContext(step, state, dependencyOutputs, timeline);
-    
-        elizaLogger.info("Step context composed", {
-            stepId: step.id,
-            contextLength: context.length
-        });
-
-        elizaLogger.info("Step context", context);
-    
-        // Execute the step using anthropic client
-        elizaLogger.info("Executing Anthropic request", {
-            stepId: step.id,
-            model: DEFAULT_MODEL,
-            toolType: step.type
-        });
-    
-        const response = await this.anthropicClient.messages.create({
-            model: DEFAULT_MODEL,
-            max_tokens: 4096,
-            messages: [{ role: "user", content: context }],
-            tools: [tools[step.type]],
-            tool_choice: { type: "tool", name: this.toolNameMap[step.type] }
-        });
-    
-        elizaLogger.info("Received Anthropic response", {
-            stepId: step.id,
-            responseType: typeof response,
-            hasContent: !!response.content
-        });
-    
-        // Extract and validate the result
-        const output = this.extractStepResult(response);
-        elizaLogger.info("Extracted step result", {
-            stepId: step.id,
-            outputType: typeof output,
-            outputKeys: Object.keys(output)
-        });
-    
-        const normalizedOutput = await this.normalizeStepOutput(step.type, output);
-        elizaLogger.info("Normalized step output", {
-            stepId: step.id,
-            normalizedType: typeof normalizedOutput,
-            normalizedKeys: Object.keys(normalizedOutput)
-        });
-    
-        // Create the step result
-        const result: StepResult = {
-            stepId: step.id,
-            type: step.type,
-            output: normalizedOutput,
-            metadata: {
-                started_at: startTime,
-                completed_at: Date.now(),
-                validation: step.validation
+            // Handle RAG if needed
+            let ragResults: RagResult[] = [];
+            if (step.requires_rag) {
+                elizaLogger.info("Executing RAG query for step", { stepId: step.id });
+                
+                const query: RagQuery = {
+                    query: step.template,
+                    focus_areas: [],
+                    must_include: [],
+                    must_avoid: []
+                };
+                
+                const result = await this.executeRagQuery(query, context);
+                ragResults.push(result);
+                
+                context = {
+                    ...context,
+                    text: `${context.text || ''}\n\n${result.content}`
+                };
             }
-        };
     
-        elizaLogger.info("Step execution completed", {
-            stepId: step.id,
-            executionDuration: Date.now() - startTime,
-            outputType: step.type,
-            success: true
-        });
+            const stepContext = await this.composeStepContext(
+                step,
+                context,
+                dependencyOutputs
+            );
+
+            elizaLogger.info(`Prompt for step: ${step.id}`, stepContext);
     
-        return result;
+            const toolMap = {
+                'assessment': 'assess_context',
+                'generation': 'generate_tweet',
+                'validation': 'validate_tweet'
+            };
+    
+            const toolName = toolMap[step.type];
+            const tool = tools[step.type];
+            
+            if (!tool) {
+                throw new Error(`Unknown tool type: ${step.type}`);
+            }
+    
+            elizaLogger.info("Executing Claude request", {
+                stepId: step.id,
+                toolName,
+                contextLength: stepContext.length
+            });
+
+            const response = await this.anthropicClient.messages.create({
+                // model: step.id === 'generation' || step.id === 'generate_tweet' ? TWEET_GENERATION_MODEL : DEFAULT_MODEL,
+                model : DEFAULT_MODEL,
+                max_tokens: 4096,
+                messages: [{ 
+                    role: "user", 
+                    content: stepContext
+                }],
+                tools: [tool],
+                tool_choice: { type: "tool", name: toolName }
+            });
+    
+            elizaLogger.info("Received Claude response", {
+                stepId: step.id,
+                contentTypes: response.content.map(c => c.type)
+            });
+
+            elizaLogger.info(`Claude response for step: ${step.id}`, response);
+    
+            // Extract and normalize output
+            let stepOutput = null;
+            for (const content of response.content) {
+                if (content.type === "tool_use" && content.name === toolName) {
+                    // Handle property normalization
+                    const rawInput = content.input as Record<string, any>;
+                    stepOutput = rawInput?.properties || rawInput?.input?.properties || rawInput;
+                    break;
+                }
+            }
+    
+            if (!stepOutput) {
+                throw new ExecutionError(
+                    `No valid output from step ${step.id}`,
+                    step.id,
+                    false
+                );
+            }
+    
+            const normalizedOutput = await this.normalizeStepOutput(step.type, stepOutput);
+    
+            const result: StepResult = {
+                stepId: step.id,
+                type: step.type,
+                output: normalizedOutput,
+                metadata: {
+                    started_at: startTime,
+                    completed_at: Date.now(),
+                    validation: step.validation,
+                    rag_results: ragResults.length > 0 ? ragResults : undefined,
+                    requires_plan_modification: false,
+                    suggested_changes: undefined
+                }
+            };
+    
+            if (step.can_trigger_changes) {
+                const planModification = await this.checkForPlanModification(
+                    step,
+                    normalizedOutput,
+                    context
+                );
+                
+                if (planModification) {
+                    result.metadata.requires_plan_modification = true;
+                    result.metadata.suggested_changes = planModification;
+                    
+                    elizaLogger.info("Plan modification suggested", {
+                        stepId: step.id,
+                        modification: planModification
+                    });
+                }
+            }
+    
+            // await this.streamToTerminal('THOUGHT', {
+            //     phase: 'Step Execution',
+            //     step: step.id,
+            //     result: result
+            // });
+    
+            elizaLogger.info("Step execution completed successfully", {
+                stepId: step.id,
+                duration: Date.now() - startTime
+            });
+
+            return result;
+    
+        } catch (error) {
+            elizaLogger.error("Step execution failed", {
+                stepId: step.id,
+                error: error,
+                duration: Date.now() - startTime
+            });
+
+            // await this.streamToTerminal('ERROR', {
+            //     phase: 'Step Execution',
+            //     step: step.id,
+            //     error: error
+            // });
+    
+            if (step.type === 'assessment') {
+                elizaLogger.info("Using fallback assessment due to error", { stepId: step.id });
+                return {
+                    stepId: step.id,
+                    type: step.type,
+                    output: {
+                        opportunities: [{
+                            topic: "Default Assessment",
+                            value: DEFAULT_SCORE,
+                            reason: "Fallback due to assessment failure"
+                        }],
+                        key_points: ["Using fallback assessment"],
+                        voice_elements: ["Default voice elements"]
+                    },
+                    metadata: {
+                        started_at: startTime,
+                        completed_at: Date.now(),
+                        validation: step.validation
+                    }
+                };
+            }
+    
+            if (this.shouldRetryStep(step.id, error)) {
+                metadata.retryCount++;
+                elizaLogger.info("Retrying step execution", {
+                    stepId: step.id,
+                    retryCount: metadata.retryCount
+                });
+                return this.executeStep(step, context, results, metadata);
+            }
+            
+            throw error;
+        }
     }
 
     private async normalizeStepOutput(type: StepType, output: any): Promise<AssessmentResult | GenerationResult | ValidationResult> {
@@ -1637,112 +1529,65 @@ export class TwitterPostClient {
     }
 
     private async generateTweet(): Promise<TweetGenerationProcess> {
-        const stateManager = new StateManager(
-            await this.getBaseState('generate')
-        );
-        
         try {
-            // 1. Planning Phase
-            elizaLogger.info("Starting planning phase", {
-                initialState: Object.keys(stateManager.getCurrentState())
-            });
-    
-            const planContext = composeContext({
-                state: stateManager.getCurrentState(), // This is now State type
-                template: templates.planning
-            });
+            const metadata = this.initializeProcessMetadata();
             
-            elizaLogger.info("Planning context composed", {
-                context: planContext
-            });
-    
-            const planResponse = await this.anthropicClient.messages.create({
-                model: PLANNING_MODEL,
-                max_tokens: 4096,
-                messages: [{ role: "user", content: planContext }],
-                tools: [tools.planning],
-                tool_choice: { type: "tool", name: "plan_execution" }
-            });
-    
-            elizaLogger.info("Received planning response", {
-                response: planResponse
-            });
-    
-            const plan = this.extractStepResult(planResponse);
+            // Get base state from runtime
+            const baseState = await this.getBaseState('generate');
             const homeTimeline = await this.client.getCachedTimeline() || [];
             const dryRunTweets = await this.client.getCachedDryRunTweets() || [];
             const allTweets = [...homeTimeline, ...dryRunTweets]
                 .sort((a, b) => b.timestamp - a.timestamp);
     
-            const timeline = await this.formatTweets(
+            const formattedTimeline = await this.formatTweets(
                 allTweets,
-                `${stateManager.getCurrentState().agentName}'s Timeline`
+                `${baseState.agentName}'s Timeline`
             );
-
-            stateManager.updateState({ plan });
-
-            stateManager.updateState({ timeline });
-            
     
-            elizaLogger.info("Plan extracted and state updated", {
-                planSteps: plan.steps.map(s => s.id),
-                newStateKeys: Object.keys(stateManager.getCurrentState())
+            const context: State = {
+                ...baseState,
+                timeline: formattedTimeline
+            };
+    
+            elizaLogger.info("Generated context for tweet generation", {
+                baseStateKeys: Object.keys(baseState),
+                hasTimeline: !!formattedTimeline
             });
     
-            // 2. Step Execution Phase
-            const results = new Map<string, StepResult>();
-            let currentSteps = [...plan.steps];
+            // Try complex generation with plan first
+            try {
+                elizaLogger.info("Attempting complex tweet generation with plan");
+                const plan = await this.planExecution(context);
+                const results = await this.executePlan(plan, context, metadata);
+                const process = this.createTweetGenerationProcess(plan, results, metadata);
+                
+                const isValid = await this.validateTweetProcess(process);
+                if (!isValid) {
+                    throw new ValidationError(
+                        "Tweet generation process failed validation",
+                        { voice_match: 0, factual_accuracy: 0, risks: ["Validation failed"] },
+                        'error'
+                    );
+                }
     
-            while (currentSteps.length > 0) {
-                const step = currentSteps.shift();
-                if (!step) break;
+                elizaLogger.info("Complex tweet generation succeeded");
+                return process;
     
-                const currentState = stateManager.getCurrentState();
-                elizaLogger.info("Executing step with state", {
-                    stepId: step.id,
-                    stateSnapshot: currentState
+            } catch (error) {
+                // Fall back to simple generation
+                elizaLogger.warn("Complex generation failed, falling back to simple tweet", {
+                    error: error instanceof Error ? error.message : 'Unknown error'
                 });
-    
-                const result = await this.executeStep(step, currentState);
-                results.set(step.id, result);
-    
-                // Update state with new result
-                stateManager.updateState({
-                    [`${step.id}_result`]: result.output
-                });
-    
-                elizaLogger.info("Step completed, state updated", {
-                    stepId: step.id,
-                    stepResult: result,
-                    newStateKeys: Object.keys(stateManager.getCurrentState())
-                });
+                
+                const simpleTweet = await this.generateSimpleTweet();
+                return this.createSimpleTweetProcess(simpleTweet, metadata);
             }
-    
-            const process = this.createTweetGenerationProcess(
-                plan,
-                results,
-                this.initializeProcessMetadata()
-            );
-    
-            elizaLogger.info("Tweet generation process created", {
-                totalSteps: process.steps.length,
-                finalTweet: process.final_output.tweet
-            });
-    
-            return process;
     
         } catch (error) {
             elizaLogger.error("Tweet generation failed", {
-                error: error instanceof Error ? error.message : 'Unknown error',
-                finalState: stateManager.getCurrentState()
+                error: error instanceof Error ? error.message : 'Unknown error'
             });
-            
-            elizaLogger.info("Falling back to simple tweet generation");
-            const simpleTweet = await this.generateSimpleTweet();
-            return this.createSimpleTweetProcess(
-                simpleTweet,
-                this.initializeProcessMetadata()
-            );
+            throw error;
         }
     }
     
@@ -1814,6 +1659,12 @@ export class TwitterPostClient {
             });
             
             const finalContent = truncateToCompleteSentence(response.trim());
+            
+            await this.streamToTerminal(
+                'ACTION',
+                finalContent,
+                processId
+            );
     
             return finalContent;
         }

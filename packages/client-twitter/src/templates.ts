@@ -114,17 +114,25 @@ The character is feeling: {{adjectives}}
 Post Directions: 
 {{postDirections}}
 Key Points: 
-{{assessment_key_points}}
+{{key_points}}
 Opportunities: 
-{{assessment_opportunities}}
+{{opportunities}}
+Voice Elements: 
+{{voice_elements}}
 Recent Tweets: 
 {{timeline}}
-Example posts by {{agentName}}: 
+Example posts by {{agentName}}
 {{characterPostExamples}}
 
 [CRITICAL REQUIREMENTS]
-- Only use facts and metrics from the key points
-- Match character voice perfectly
+- IT IS CRITICAL TO not repeat or reuse ANY of the same topics, phrases/patterns, metrics or content from Recent Tweets
+- If there metrics were used in the last two recent tweets, then do not use any metrics
+- Do not repeat the same topic from the last two recent tweets
+- Consider the key points and opportunities and use them to create a unique tweet
+- If you are unsure about the metrics, then do not use any metrics
+- If you do use metrics, then only use them from Key Points and Opportunities
+- Match character voice perfectly; use the Example posts by {{agentName}}, Bio, Lore, and Post Directions as a reference
+- Follow Post Directions
 - Use exact facts & metrics
 - Stay under 280 chars and one sentence
 - Use an engaging hook provide value to the reader
@@ -151,11 +159,11 @@ Facts:
 
 
 # GENERATED CONTENT
-Tweet: {{generation_tweet}}
+Tweet: {{generated_tweet}}
 
 # ASSESSMENT CONTEXT
 Key Points:
-{{assessment_key_points}}
+{{key_points}}
 
 [VALIDATION CRITERIA]
 - Voice must be perfect match
