@@ -1,262 +1,137 @@
 // types.ts
 
-import type { Tool } from '@anthropic-ai/sdk/resources/messages';
-
-// Base types and enums
-export type StepType = 'planning' | 'rag' | 'assessment' | 'strategy' | 'generation' | 'validation';
-export type ContentType = 'news' | 'discussion' | 'development' | 'announcement';
-export type ValueType = 'information' | 'community' | 'strategic';
+// Core types
+export type StepType = 'assessment' | 'generation' | 'validation';
 export type ValidationLevel = 'error' | 'warning' | 'info';
 
-// Base context interfaces
-export interface BaseContext {
-    agentName: string;
-    twitterUserName: string;
-    bio: string[];
-    knowledge: string[];
-    adjectives: string[];
-    postDirections: string[];
-    providers: string;
-    timeline: string;
+// Base validation interface
+export interface Validation {
+    voice_match: number;      // 0-5
+    factual_accuracy: number; // 0-5
+    risks: string[];         // At least one item
 }
 
-export interface StepContext extends BaseContext {
-    stepPurpose?: string;
-    knowledgeNeeds?: string[];
-    currentContext?: string;
-    selectedTopic?: string;
-    dependencyOutputs?: Record<string, any>;
-    priorInsights?: string[];
-    objective?: string;
-    retrievedKnowledge?: string;
-    opportunities?: string;
-    characterAlignment?: string;
-    selectedFocus?: string;
-    selectedStrategy?: string;
-    voicePlan?: string;
-    selectedContent?: string;
-    processMetadata?: string;
-    strategyAlignment?: string;
-    voiceRequirements?: string;
-    valueMetrics?: string;
-    impactMetrics?: string;
+export interface PlanModification {
+    add_steps?: ExecutionStep[];
+    remove_steps?: string[];
+    modify_steps?: Record<string, Partial<ExecutionStep>>;
 }
 
-// Validation interfaces
-export interface ValidationMetrics {
-    technical_checks: Record<string, boolean>;
-    character_alignment: {
-        voice_score: number;
-        expertise_score: number;
-        authenticity_score: number;
-    };
-    value_assessment: {
-        information_value: number;
-        community_value: number;
-        strategic_value: number;
-    };
-    risk_evaluation: {
-        identified_risks: string[];
-        mitigation_suggestions: string[];
-    };
-}
-
-// Error handling interfaces
-export interface ErrorHandling {
-    retry_strategy: {
-        max_attempts: number;
-        conditions: string[];
-    };
-    fallback_options: string[];
-    recovery_steps: string[];
-}
-
-// Step and execution interfaces
+// Step interface
 export interface ExecutionStep {
     id: string;
     type: StepType;
     template: string;
-    purpose: string;
     requires_rag: boolean;
     dependencies: string[];
-    validation: ValidationMetrics;
-    error_handling: ErrorHandling;
-    metadata: {
-        estimated_duration?: number;
-        required_context?: string[];
-        success_criteria: string[];
-    };
+    validation: Validation;
+    can_trigger_changes?: boolean;
+    modification_conditions?: string[];
 }
 
+// Plan interface
 export interface ExecutionPlan {
     steps: ExecutionStep[];
-    validation: ValidationMetrics;
-    error_handling: ErrorHandling;
     metadata: {
         estimated_duration: number;
-        required_context: string[];
         success_criteria: string[];
-    };
+        allows_modifications: boolean;
+        modification_triggers?: {
+            condition: string;
+            suggested_steps: string[];
+        }[];
+    }
 }
-
 // RAG interfaces
 export interface RagQuery {
     query: string;
-    focus_areas: string[];
-    expected_use: string;
-    relevance_criteria: {
-        mustHave: string[];
-        niceToHave: string[];
-        avoid: string[];
-    };
-    validation: {
-        completeness_checks: string[];
-        accuracy_requirements: string[];
-        relevance_metrics: string[];
-    };
+    focus_areas: string[];      // Max 3
+    must_include: string[];     // Min 1
+    must_avoid: string[];
 }
 
 export interface RagResult {
     content: string;
     metadata: {
         retrieved_at: number;
-        source: string;
-        relevance_score: number;
-        validation: ValidationMetrics;
-    };
+        relevance_score: number;  // 0-5
+    }
 }
 
-// Assessment interfaces
+// Assessment interface
 export interface Opportunity {
-    type: string;
-    description: string;
-    value: number;
-    feasibility: number;
+    topic: string;
+    value: number;    // 0-5
+    reason: string;
 }
 
 export interface AssessmentResult {
-    opportunities: {
-        identified: Opportunity[];
-        prioritization: {
-            criteria: string[];
-            rankings: Record<string, number>;
-        };
-    };
-    knowledge_needs: {
-        gaps: string[];
-        verification_needs: string[];
-        context_requirements: string[];
-    };
-    character_alignment: {
-        natural_angles: string[];
-        voice_considerations: string[];
-        expertise_utilization: string[];
-    };
+    opportunities: Opportunity[];  // Min 1
+    key_points: string[];         // Min 1
+    voice_elements: string[];     // Min 1
 }
 
-// Strategy interfaces
-export interface ContentStrategy {
-    selected_strategy: {
-        angle: string;
-        rationale: string;
-        key_points: string[];
-        structure: {
-            opening: string;
-            development: string;
-            conclusion: string;
-        };
-    };
-    voice_plan: {
-        traits_to_emphasize: string[];
-        expertise_integration: string;
-        tone_guidance: string;
-    };
-    validation_criteria: {
-        authenticity_checks: string[];
-        impact_measures: string[];
-        uniqueness_validators: string[];
-    };
-}
-
-// Generation interfaces
-export interface ContentVariation {
-    content: string;
-    rationale: string;
-    strengths: string[];
-    risks: string[];
-}
-
+// Generation interface
 export interface GenerationResult {
-    variations: ContentVariation[];
-    evaluations: {
-        authenticity_scores: Record<string, number>;
-        impact_predictions: Record<string, number>;
-        risk_assessments: Record<string, string[]>;
-    };
-    recommendation: {
-        selected_version: string;
-        justification: string;
-        confidence_score: number;
-    };
+    tweet: string;           // Max 280 chars
+    rationale: string;
+    metrics_used: string[];  // Min 1
 }
 
-// Validation interfaces
+// Validation interface
 export interface ValidationResult {
-    validation_results: ValidationMetrics;
-    final_recommendation: {
-        approve: boolean;
-        changes_needed: string[];
-        confidence_score: number;
+    scores: {
+        voice_match: number;      // 0-5
+        factual_accuracy: number; // 0-5
     };
+    issues: string[];
+    approved: boolean;
 }
 
-// Step result interfaces
+// Step result interface
 export interface StepResult {
     stepId: string;
     type: StepType;
-    output: AssessmentResult | ContentStrategy | GenerationResult | ValidationResult;
+    output: AssessmentResult | GenerationResult | ValidationResult;
     metadata: {
         started_at: number;
         completed_at: number;
-        validation: ValidationMetrics;
-        rag_queries?: RagQuery[];
+        validation: Validation;
         rag_results?: RagResult[];
-    };
+        requires_plan_modification?: boolean;
+        suggested_changes?: PlanModification;
+    }
 }
 
-// Complete process interface
+// Process interface
 export interface TweetGenerationProcess {
     plan: ExecutionPlan;
     steps: StepResult[];
     final_output: {
         tweet: string;
-        supporting_data: {
-            rag_queries: RagQuery[];
-            assessments: AssessmentResult[];
-            strategies: ContentStrategy[];
-            variations: ContentVariation[];
-        };
         validation: ValidationResult;
+        supporting_data: {
+            metrics_used: string[];
+            key_points: string[];
+            rag_results?: RagResult[];
+            assessments?: AssessmentResult[];
+        }
     };
     metadata: {
         started_at: number;
         completed_at: number;
         steps_executed: number;
-        rag_queries_performed: number;
         overall_confidence: number;
-    };
-    error_handling: {
-        retries: Record<string, number>;
-        failures: Record<string, string>;
-        recoveries: Record<string, string>;
-    };
+        modifications?: PlanModification[];
+        errors?: Error[];
+    }
 }
 
 // Error types
 export class ValidationError extends Error {
     constructor(
         message: string,
-        public validation: ValidationMetrics,
+        public validation: Validation,
         public level: ValidationLevel
     ) {
         super(message);
@@ -268,11 +143,9 @@ export class ExecutionError extends Error {
     constructor(
         message: string,
         public stepId: string,
-        public recovery_attempted: boolean,
-        public recovery_result?: string
+        public retry_attempted: boolean
     ) {
         super(message);
         this.name = 'ExecutionError';
     }
 }
-
