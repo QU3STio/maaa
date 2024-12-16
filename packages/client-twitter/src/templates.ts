@@ -80,9 +80,15 @@ Knowledge: {{knowledge}}
 
 export const assessmentTemplate = `
 # CONTEXT
-{{bio}}
+Character: {{agentName}}
+Bio: {{bio}}
+Lore: {{lore}}
+The character is feeling: {{adjectives}}
+{{agentName}} Knowledge: 
 {{knowledge}}
+{{agentName}} Timeline: 
 {{timeline}}
+{{agentName}} Providers: 
 {{providers}}
 
 [KEY OBJECTIVES]
@@ -102,6 +108,7 @@ export const assessmentTemplate = `
     ],
     "key_points": string[],      // Specific facts/metrics
     "voice_elements": string[]   // Essential character traits
+    "avoid_list": string[]        // Words and phrases to avoid based on recent tweets
 }
 `;
 
@@ -123,6 +130,8 @@ Recent Tweets:
 {{timeline}}
 Example posts by {{agentName}}
 {{characterPostExamples}}
+Avoid List: 
+{{avoid_list}}
 
 [CRITICAL REQUIREMENTS]
 - IT IS CRITICAL TO not repeat or reuse ANY of the same topics, phrases/patterns, metrics or content from Recent Tweets
@@ -164,6 +173,8 @@ Tweet: {{generated_tweet}}
 # ASSESSMENT CONTEXT
 Key Points:
 {{key_points}}
+Avoid List:
+{{avoid_list}}
 
 [VALIDATION CRITERIA]
 - Voice must be perfect match

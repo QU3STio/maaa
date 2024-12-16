@@ -18,16 +18,14 @@ import {
     TweetGenerationProcess,
     ValidationResult,
     ValidationError,
-    ExecutionError,
     RagQuery,
     RagResult,
     GenerationResult,
     AssessmentResult,
     PlanModification,
-    Validation,
     StepType
 } from "./types";
-import { tools, ToolType } from "./tools";
+import { tools } from "./tools";
 import { templates } from "./templates";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -35,8 +33,6 @@ import Anthropic from "@anthropic-ai/sdk";
 const MAX_TWEET_LENGTH = 280;
 const DEFAULT_MODEL = "claude-3-sonnet-20240229";
 const PLANNING_MODEL = "claude-3-sonnet-20240229";
-const TWEET_GENERATION_MODEL = "claude-3-opus-latest";
-const DEFAULT_RETRY_ATTEMPTS = 3;
 const MIN_SCORE = 0;
 const MAX_SCORE = 5;
 const DEFAULT_SCORE = 4;
@@ -79,37 +75,12 @@ function normalizeScore(score: number | undefined): number {
     return Math.min(MAX_SCORE, Math.max(MIN_SCORE, Math.round(score)));
 }
 
-// Helper for validating and normalizing validation metrics
-function normalizeValidation(validation: Partial<Validation>): Validation {
-    return {
-        voice_match: normalizeScore(validation.voice_match),
-        factual_accuracy: normalizeScore(validation.factual_accuracy),
-        risks: Array.isArray(validation.risks) && validation.risks.length > 0 
-            ? validation.risks 
-            : ["No specific risks identified"]
-    };
-}
-
-function validateDependencies(step: ExecutionStep, results: Map<string, StepResult>): boolean {
-    return step.dependencies.every(depId => results.has(depId));
-}
-
-function gatherDependencyOutputs(step: ExecutionStep, results: Map<string, StepResult>): Record<string, any> {
-    const outputs: Record<string, any> = {};
-    for (const depId of step.dependencies) {
-        const result = results.get(depId);
-        if (result) {
-            outputs[depId] = result.output;
-        }
-    }
-    return outputs;
-}
-
-interface EnrichedState extends State {
+export interface EnrichedState extends State {
     // Assessment results
     opportunities?: string;
     key_points?: string;
     voice_elements?: string;
+    avoid_list?: string;
     
     // Generation results
     generated_tweet?: string;
@@ -188,6 +159,9 @@ function processStepResult(result: any, prefix: string): Record<string, any> {
         processed[`${prefix}_voice_elements`] = Array.isArray(result.voice_elements) ?
             result.voice_elements.join('\n') :
             '';
+        processed[`${prefix}_avoid_list`] = Array.isArray(result.avoid_list) ?
+            result.avoid_list.join('\n') :
+            '';
     }
 
     // Handle generation results
@@ -257,32 +231,6 @@ export const composeContext = ({
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
-interface StepStateComposer {
-    baseState: State;
-    dependencyOutputs: Record<string, any>;
-    step: ExecutionStep;
-    timeline: Tweet[];
-}
-
-interface BaseState {
-    agentId?: UUID;
-    userId?: UUID;
-    bio: string;
-    lore: string;
-    messageDirections: string;
-    postDirections: string;
-    knowledge?: string;
-    timeline?: string;
-}
-
-interface PlanningState extends BaseState {
-    plan?: ExecutionPlan;
-}
-
-interface StepState extends PlanningState {
-    stepResults: Record<string, StepResult>;
-}
-
 class StateManager {
     private currentState: State;
     
@@ -318,8 +266,6 @@ export class TwitterPostClient {
     private anthropicClient: Anthropic;
     private terminalUrl: string;
     private processId: string;
-    private lastError: Error | null = null;
-    private retryMap: Map<string, number> = new Map();
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -495,6 +441,11 @@ export class TwitterPostClient {
                         output.voice_elements.join('\n') :
                         '';
                 }
+                if ('avoid_list' in output) {
+                    enrichedState.avoid_list = Array.isArray(output.avoid_list) ?
+                        output.avoid_list.join('\n') :
+                        '';
+                }
                 if ('tweet' in output) {
                     enrichedState.generated_tweet = String(output.tweet);
                     enrichedState.tweet_rationale = String(output.rationale || '');
@@ -546,22 +497,33 @@ export class TwitterPostClient {
             timeline
         });
     
-        // When validating, ensure key_points from assessment are available
+        // When validating, ensure key_points and avoid_list from assessment are available
         if (step.type === 'validation') {
-            const assessmentResult = baseContext.assess_tweet_context_result as AssessmentResult | undefined;
+            const assessmentResult = baseContext.assess_context_result as AssessmentResult | undefined;
             
-            if (assessmentResult && 'key_points' in assessmentResult) {
-                stepState.key_points = Array.isArray(assessmentResult.key_points) ?
-                    assessmentResult.key_points.join('\n') :
-                    '';
+            if (assessmentResult) {
+                if ('key_points' in assessmentResult) {
+                    stepState.key_points = Array.isArray(assessmentResult.key_points) ?
+                        assessmentResult.key_points.join('\n') :
+                        '';
+                    
+                    elizaLogger.debug("Added assessment key points to validation context", {
+                        hasKeyPoints: !!stepState.key_points
+                    });
+                }
                 
-                elizaLogger.debug("Added assessment key points to validation context", {
-                    hasKeyPoints: !!stepState.key_points
-                });
+                if ('avoid_list' in assessmentResult) {
+                    stepState.avoid_list = Array.isArray(assessmentResult.avoid_list) ?
+                        assessmentResult.avoid_list.join('\n') :
+                        '';
+                        
+                    elizaLogger.debug("Added avoid list to validation context", {
+                        hasAvoidList: !!stepState.avoid_list
+                    });
+                }
             } else {
-                elizaLogger.warn("Assessment result not found or missing key points", {
-                    hasAssessmentResult: !!assessmentResult,
-                    resultType: assessmentResult ? typeof assessmentResult : 'undefined'
+                elizaLogger.warn("Assessment result not found", {
+                    hasAssessmentResult: !!assessmentResult
                 });
             }
         }
@@ -587,6 +549,8 @@ export class TwitterPostClient {
             state: stepState,
             template
         });
+
+        elizaLogger.info(`Step context for ${step.id}`, context);
     
         elizaLogger.info("Step context composed", {
             stepId: step.id,
@@ -596,51 +560,6 @@ export class TwitterPostClient {
         });
     
         return context;
-    }
-
-    private shouldRetryStep(stepId: string, error: Error): boolean {
-        const retryCount = this.retryMap.get(stepId) || 0;
-        
-        elizaLogger.info("Checking retry eligibility", {
-            stepId,
-            currentRetryCount: retryCount,
-            errorType: error.constructor.name,
-            maxRetries: DEFAULT_RETRY_ATTEMPTS
-        });
-        
-        if (error instanceof ValidationError && error.level === 'error') {
-            elizaLogger.info("Skipping retry for validation error", {
-                stepId,
-                level: error.level
-            });
-            return false;
-        }
-
-        if (retryCount >= DEFAULT_RETRY_ATTEMPTS) {
-            elizaLogger.info("Maximum retry attempts reached", { stepId });
-            return false;
-        }
-
-        this.retryMap.set(stepId, retryCount + 1);
-        elizaLogger.info("Step retry approved", {
-            stepId,
-            newRetryCount: retryCount + 1
-        });
-        
-        return true;
-    }
-
-    private clearRetryState(stepId?: string) {
-        if (stepId) {
-            this.retryMap.delete(stepId);
-        } else {
-            this.retryMap.clear();
-        }
-        this.lastError = null;
-        
-        elizaLogger.info("Retry state cleared", {
-            specificStep: stepId || 'all'
-        });
     }
 
     private extractStepResult(response: any): any {
@@ -695,6 +614,26 @@ export class TwitterPostClient {
                 timelineLength: timeline.length
             });
         }
+
+        let ragResults: RagResult[] = [];
+            if (step.requires_rag) {
+                elizaLogger.info("Executing RAG query for step", { stepId: step.id });
+                
+                const query: RagQuery = {
+                    query: step.template,
+                    focus_areas: [],
+                    must_include: [],
+                    must_avoid: []
+                };
+                
+                const result = await this.executeRagQuery(query, state);
+                ragResults.push(result);
+                
+                state = {
+                    ...state,
+                    text: `${state.text || ''}\n\n${result.content}`
+                };
+            }
     
         // Compose the context with dependencies and timeline
         const context = await this.composeStepContext(step, state, dependencyOutputs, timeline);
@@ -703,8 +642,6 @@ export class TwitterPostClient {
             stepId: step.id,
             contextLength: context.length
         });
-
-        elizaLogger.info("Step context", context);
     
         // Execute the step using anthropic client
         elizaLogger.info("Executing Anthropic request", {
@@ -762,7 +699,7 @@ export class TwitterPostClient {
         });
     
         return result;
-    }
+    }    
 
     private async normalizeStepOutput(type: StepType, output: any): Promise<AssessmentResult | GenerationResult | ValidationResult> {
         elizaLogger.info(`Normalizing ${type} output`, {
@@ -795,9 +732,10 @@ export class TwitterPostClient {
         elizaLogger.info("Normalizing assessment output", {
             hasOpportunities: Array.isArray(data?.opportunities),
             hasKeyPoints: Array.isArray(data?.key_points),
-            hasVoiceElements: Array.isArray(data?.voice_elements)
+            hasVoiceElements: Array.isArray(data?.voice_elements),
+            hasAvoidList: Array.isArray(data?.avoid_list)
         });
-
+    
         return {
             opportunities: Array.isArray(data?.opportunities) ?
                 data.opportunities.map((opp: any) => ({
@@ -815,9 +753,13 @@ export class TwitterPostClient {
                 ["No key points specified"],
             voice_elements: Array.isArray(data?.voice_elements) ?
                 data.voice_elements.map(String) :
-                ["No voice elements specified"]
+                ["No voice elements specified"],
+            avoid_list: Array.isArray(data?.avoid_list) ?
+                data.avoid_list.map(String) :
+                []
         };
     }
+    
     
     private normalizeGenerationOutput(output: any): GenerationResult {    
         // Handle different property structures
@@ -874,85 +816,6 @@ export class TwitterPostClient {
                 [],
             approved: Boolean(data.approved)
         };
-    }
-
-    private async checkForPlanModification(
-        step: ExecutionStep,
-        output: any,
-        context: State
-    ): Promise<PlanModification | undefined> {
-        if (!step.can_trigger_changes) {
-            return undefined;
-        }
-
-        elizaLogger.info("Checking for plan modifications", {
-            stepId: step.id,
-            hasConditions: Array.isArray(step.modification_conditions)
-        });
-
-        const shouldModify = step.modification_conditions?.some(condition => {
-            try {
-                return new Function('output', 'context', `return ${condition}`)(output, context);
-            } catch (error) {
-                elizaLogger.warn("Error evaluating modification condition", {
-                    condition,
-                    error
-                });
-                return false;
-            }
-        });
-
-        if (!shouldModify) {
-            return undefined;
-        }
-
-        const modificationContext = composeContext({
-            state: {
-                ...context,
-                currentStep: step,
-                stepOutput: output
-            },
-            template: templates.planning
-        });
-
-        elizaLogger.info("Generating plan modification", {
-            stepId: step.id,
-            contextLength: modificationContext.length
-        });
-
-        const response = await this.anthropicClient.messages.create({
-            model: PLANNING_MODEL,
-            max_tokens: 1024,
-            messages: [{ 
-                role: "user", 
-                content: modificationContext
-            }],
-            tools: [tools.planning],
-            tool_choice: { type: "tool", name: "plan_execution" }
-        });
-
-        let modification: PlanModification | undefined;
-        for (const content of response.content) {
-            if (content.type === "tool_use" && content.name === "plan_execution") {
-                const data = content.input as any;
-                modification = data?.properties || data?.input?.properties || data;
-                break;
-            }
-        }
-
-        if (modification) {
-            elizaLogger.info("Plan modification generated", {
-                stepId: step.id,
-                modification
-            });
-
-            // await this.streamToTerminal('PLAN_MODIFICATION', {
-            //     step: step.id,
-            //     modification
-            // });
-        }
-
-        return modification;
     }
 
     private async executeRagQuery(query: RagQuery, context: State): Promise<RagResult> {
@@ -1034,231 +897,6 @@ export class TwitterPostClient {
                 relevance_score: content ? DEFAULT_SCORE : 0
             }
         };
-    }
-
-    private async planExecution(context: State): Promise<ExecutionPlan> {
-        elizaLogger.info("Planning execution", {
-            contextKeys: Object.keys(context)
-        });
-
-        const planningContext = composeContext({
-            state: context,
-            template: templates.planning
-        });
-    
-        const response = await this.anthropicClient.messages.create({
-            model: PLANNING_MODEL,
-            max_tokens: 4096,
-            messages: [{ role: "user", content: planningContext }],
-            tools: [tools.planning],
-            tool_choice: { type: "tool", name: "plan_execution" }
-        });
-
-        let plan: ExecutionPlan | null = null;
-        
-        for (const content of response.content) {
-            if (content.type === "tool_use" && content.name === "plan_execution") {
-                const data = content.input as any;
-                plan = this.normalizePlan(data?.properties || data?.input?.properties || data);
-                break;
-            }
-        }
-
-        if (!plan) {
-            throw new ValidationError(
-                "Failed to generate valid execution plan",
-                { voice_match: 0, factual_accuracy: 0, risks: ["Plan generation failed"] },
-                'error'
-            );
-        }
-    
-        await this.streamToTerminal('THOUGHT', {
-            phase: 'Planning',
-            plan: plan
-        });
-
-        elizaLogger.info("Execution plan generated", {
-            stepCount: plan.steps.length,
-            estimatedDuration: plan.metadata.estimated_duration
-        });
-    
-        return plan;
-    }
-
-    private normalizePlan(planData: any): ExecutionPlan {
-        elizaLogger.info("Normalizing plan", {
-            hasSteps: Array.isArray(planData?.steps),
-            hasMetadata: !!planData?.metadata
-        });
-
-        if (!planData || !Array.isArray(planData.steps)) {
-            throw new ValidationError(
-                "Invalid plan structure",
-                { voice_match: 0, factual_accuracy: 0, risks: ["Missing steps array"] },
-                'error'
-            );
-        }
-    
-        const normalizedSteps: ExecutionStep[] = planData.steps.map((step: any, index: number) => ({
-            id: step.id || `step-${index + 1}`,
-            type: this.validateStepType(step.type),
-            template: step.template || templates[step.type] || '',
-            requires_rag: Boolean(step.requires_rag),
-            dependencies: Array.isArray(step.dependencies) ? step.dependencies : [],
-            validation: typeof step.validation === 'string' ? 
-                { voice_match: DEFAULT_SCORE, factual_accuracy: DEFAULT_SCORE, risks: [step.validation] } :
-                normalizeValidation(step.validation || {}),
-            can_trigger_changes: Boolean(step.can_trigger_changes),
-            modification_conditions: Array.isArray(step.modification_conditions) ? 
-                step.modification_conditions : []
-        }));
-    
-        this.validateStepDependencies(normalizedSteps);
-    
-        return {
-            steps: normalizedSteps,
-            metadata: {
-                estimated_duration: typeof planData.metadata?.estimated_duration === 'number' ? 
-                    planData.metadata.estimated_duration : 
-                    normalizedSteps.length * 30,
-                success_criteria: Array.isArray(planData.metadata?.success_criteria) ?
-                    planData.metadata.success_criteria :
-                    ["Plan completion"],
-                allows_modifications: Boolean(planData.metadata?.allows_modifications)
-            }
-        };
-    }
-
-    private async executePlan(
-        plan: ExecutionPlan, 
-        context: State,
-        metadata: ReturnType<typeof this.initializeProcessMetadata>
-    ): Promise<Map<string, StepResult>> {
-        const results = new Map<string, StepResult>();
-        let currentSteps = this.orderStepsByDependencies(plan.steps);
-        
-        elizaLogger.info("Starting plan execution with steps:", 
-            currentSteps.map(s => ({id: s.id, type: s.type}))
-        );
-        
-        while (currentSteps.length > 0) {
-            const step = currentSteps.shift();
-            if (!step) break;
-    
-            try {
-                const result = await this.executeStep(step, context, results, metadata);
-                results.set(step.id, result);
-    
-                if (result.metadata.requires_plan_modification && result.metadata.suggested_changes) {
-                    const modification = result.metadata.suggested_changes;
-                    
-                    if (modification.add_steps) {
-                        currentSteps = [...currentSteps, ...modification.add_steps];
-                    }
-                    if (modification.remove_steps) {
-                        currentSteps = currentSteps.filter(s => 
-                            !modification.remove_steps?.includes(s.id)
-                        );
-                    }
-                    if (modification.modify_steps) {
-                        currentSteps = currentSteps.map(s => ({
-                            ...s,
-                            ...modification.modify_steps?.[s.id]
-                        }));
-                    }
-    
-                    currentSteps = this.orderStepsByDependencies(currentSteps);
-                    metadata.modifications.push(modification);
-                }
-    
-            } catch (error) {
-                metadata.errors.push(error);
-                
-                if (error instanceof ValidationError && error.level === 'error') {
-                    elizaLogger.warn(`Skipping failed step ${step.id} and continuing...`);
-                    continue;
-                }
-                
-                throw error;
-            }
-        }
-    
-        return results;
-    }
-
-    private validateStepType(type: any): StepType {
-        const validTypes: StepType[] = ['assessment', 'generation', 'validation'];
-        if (!validTypes.includes(type)) {
-            throw new ValidationError(
-                `Invalid step type: ${type}`,
-                { voice_match: 0, factual_accuracy: 0, risks: ["Invalid step type"] },
-                'error'
-            );
-        }
-        return type;
-    }
-
-    private validateStepDependencies(steps: ExecutionStep[]): void {
-        const stepIds = new Set(steps.map(s => s.id));
-        
-        for (const step of steps) {
-            for (const depId of step.dependencies) {
-                if (!stepIds.has(depId)) {
-                    throw new ValidationError(
-                        `Invalid dependency: ${depId} in step ${step.id}`,
-                        { voice_match: 0, factual_accuracy: 0, risks: ["Invalid dependency"] },
-                        'error'
-                    );
-                }
-            }
-        }
-    }
-
-    private orderStepsByDependencies(steps: ExecutionStep[]): ExecutionStep[] {
-        const ordered: ExecutionStep[] = [];
-        const visited = new Set<string>();
-        const visiting = new Set<string>();
-
-        const visit = (step: ExecutionStep) => {
-            if (visiting.has(step.id)) {
-                throw new ValidationError(
-                    "Circular dependency detected",
-                    { voice_match: 0, factual_accuracy: 0, risks: ["Circular dependency"] },
-                    'error'
-                );
-            }
-            
-            if (visited.has(step.id)) {
-                return;
-            }
-
-            visiting.add(step.id);
-
-            for (const depId of step.dependencies) {
-                const depStep = steps.find(s => s.id === depId);
-                if (depStep) {
-                    visit(depStep);
-                }
-            }
-
-            visiting.delete(step.id);
-            visited.add(step.id);
-            ordered.push(step);
-        };
-
-        steps.forEach(step => {
-            if (!visited.has(step.id)) {
-                visit(step);
-            }
-        });
-
-        elizaLogger.info("Steps ordered by dependencies", {
-            originalCount: steps.length,
-            orderedCount: ordered.length,
-            order: ordered.map(s => s.id)
-        });
-
-        return ordered;
     }
 
     private initializeProcessMetadata() {
@@ -1567,73 +1205,6 @@ export class TwitterPostClient {
                 errors: metadata.errors
             }
         };
-    }
-
-    private async validateTweetProcess(
-        process: TweetGenerationProcess
-    ): Promise<boolean> {
-        try {
-            if (process.final_output.tweet.length > MAX_TWEET_LENGTH) {
-                throw new ValidationError(
-                    "Tweet exceeds maximum length",
-                    { voice_match: 0, factual_accuracy: 0, risks: ["Length violation"] },
-                    'error'
-                );
-            }
-    
-            if (process.metadata.overall_confidence < DEFAULT_SCORE) {
-                throw new ValidationError(
-                    "Tweet confidence below threshold",
-                    { 
-                        voice_match: process.metadata.overall_confidence,
-                        factual_accuracy: process.metadata.overall_confidence,
-                        risks: ["Low confidence"]
-                    },
-                    'warning'
-                );
-            }
-    
-            const validationStep = process.steps.find(
-                s => s.type === 'validation' && isValidationResult(s.output)
-            );
-    
-            if (!validationStep || !isValidationResult(validationStep.output)) {
-                if (process.steps.length > 1) {
-                    throw new ValidationError(
-                        "Missing validation step",
-                        { voice_match: 0, factual_accuracy: 0, risks: ["No validation"] },
-                        'warning'
-                    );
-                }
-            }
-    
-            const criticalErrors = process.metadata.errors.filter(
-                e => e instanceof ValidationError && e.level === 'error'
-            );
-    
-            if (criticalErrors.length > 0) {
-                throw new ValidationError(
-                    "Process contains critical errors",
-                    { voice_match: 0, factual_accuracy: 0, risks: ["Critical errors present"] },
-                    'error'
-                );
-            }
-    
-            return true;
-    
-        } catch (error) {
-            if (error instanceof ValidationError) {
-                // await this.streamToTerminal('ERROR', {
-                //     phase: 'Process Validation',
-                //     error: error,
-                //     level: error.level
-                // });
-    
-                return error.level !== 'error';
-            }
-    
-            throw error;
-        }
     }
 
     private async generateTweet(): Promise<TweetGenerationProcess> {

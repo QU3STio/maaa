@@ -69,6 +69,7 @@ export interface AssessmentResult {
     opportunities: Opportunity[];  // Min 1
     key_points: string[];         // Min 1
     voice_elements: string[];     // Min 1
+    avoid_list: string[];        // words/phrases to avoid
 }
 
 // Generation interface

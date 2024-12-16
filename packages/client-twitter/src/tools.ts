@@ -127,7 +127,7 @@ export const assessmentTool: Tool = {
     description: "Analyzes context for tweet opportunities",
     input_schema: {
         type: "object",
-        required: ["opportunities", "key_points", "voice_elements"],
+        required: ["opportunities", "key_points", "voice_elements", "avoid_list"],
         properties: {
             opportunities: {
                 type: "array",
@@ -155,6 +155,11 @@ export const assessmentTool: Tool = {
                 type: "array",
                 items: { type: "string" },
                 minItems: 1
+            },
+            avoid_list: {
+                type: "array",
+                items: { type: "string" },
+                description: "Words and phrases to avoid based on recent tweets"
             }
         }
     }
