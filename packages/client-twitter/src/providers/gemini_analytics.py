@@ -145,9 +145,6 @@ def rate_limited_main(interval_minutes: int = 30) -> List[str]:
         return get_cached_data(str(lockfile_path))
 
     try:
-        # Configure Google AI
-        genai.configure(api_key=GOOGLE_API_KEY)
-
         # Get news insights
         insights = get_crypto_gaming_news()
 

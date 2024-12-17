@@ -690,6 +690,15 @@ export class TwitterPostClient {
                 validation: step.validation
             }
         };
+
+        await this.streamToTerminal(
+            'THOUGHT',
+            {
+                phase: 'Plan Execution',
+                context: result
+            },
+            this.processId
+        );
     
         elizaLogger.info("Step execution completed", {
             stepId: step.id,
@@ -1240,6 +1249,16 @@ export class TwitterPostClient {
             });
     
             const plan = this.extractStepResult(planResponse);
+
+            await this.streamToTerminal(
+                'THOUGHT',
+                {
+                    phase: 'Planning',
+                    context: plan
+                },
+                this.processId
+            );
+
             const homeTimeline = await this.client.getCachedTimeline() || [];
             const dryRunTweets = await this.client.getCachedDryRunTweets() || [];
             const allTweets = [...homeTimeline, ...dryRunTweets]
