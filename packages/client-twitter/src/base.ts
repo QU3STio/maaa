@@ -760,4 +760,18 @@ export class ClientBase extends EventEmitter {
             return undefined;
         }
     }
+
+    async getCachedDryRunTweets(): Promise<Tweet[]> {
+        return await this.runtime.cacheManager.get<Tweet[]>(
+            `twitter/${this.profile.username}/dryRunTweets`
+        ) || [];
+    }
+
+    async cacheDryRunTweet(tweet: Tweet) {
+        await this.runtime.cacheManager.set(
+            `twitter/${this.profile.username}/dryRunTweets`,
+            [tweet]
+        );
+    }
+
 }
