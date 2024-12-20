@@ -4,31 +4,36 @@ import { TwitterInteractionClient } from "./interactions.ts";
 import { IAgentRuntime, Client, elizaLogger } from "@ai16z/eliza";
 import { validateTwitterConfig } from "./environment.ts";
 import { ClientBase } from "./base.ts";
-
+import { duneMetricsRoninProvider } from "./providers/duneMetricsRonin.ts";
+import { geminiNewsWeb3Provider } from "./providers/geminiNewsCrypto.ts";
 class TwitterManager {
     client: ClientBase;
     post: TwitterPostClient;
     search: TwitterSearchClient;
     interaction: TwitterInteractionClient;
-    constructor(runtime: IAgentRuntime, enableSearch:boolean) {
+    constructor(runtime: IAgentRuntime, enableSearch: boolean) {
         this.client = new ClientBase(runtime);
         this.post = new TwitterPostClient(this.client, runtime);
 
+        if (runtime.character.name === "Terminator Tanuki") {
+            runtime.providers.push(duneMetricsRoninProvider);
+            runtime.providers.push(geminiNewsWeb3Provider);
+        }
+
         if (enableSearch) {
-          // this searches topics from character file
-          elizaLogger.warn('Twitter/X client running in a mode that:')
-          elizaLogger.warn('1. violates consent of random users')
-          elizaLogger.warn('2. burns your rate limit')
-          elizaLogger.warn('3. can get your account banned')
-          elizaLogger.warn('use at your own risk')
-          this.search = new TwitterSearchClient(this.client, runtime); // don't start the search client by default
+            // this searches topics from character file
+            elizaLogger.warn("Twitter/X client running in a mode that:");
+            elizaLogger.warn("1. violates consent of random users");
+            elizaLogger.warn("2. burns your rate limit");
+            elizaLogger.warn("3. can get your account banned");
+            elizaLogger.warn("use at your own risk");
+            this.search = new TwitterSearchClient(this.client, runtime); // don't start the search client by default
         }
         this.interaction = new TwitterInteractionClient(this.client, runtime);
     }
 }
 
 export const TwitterClientInterface: Client = {
-
     async start(runtime: IAgentRuntime) {
         await validateTwitterConfig(runtime);
 
