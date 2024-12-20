@@ -10,7 +10,7 @@ import {
     DEFAULT_CACHE_TTL,
 } from "./utils";
 
-const geminiNewsWeb3Provider: Provider = {
+const geminiNewsWeebProvider: Provider = {
     get: async (runtime: IAgentRuntime, message: Memory): Promise<string> => {
         try {
             elizaLogger.info("Starting Weeb news provider...");
@@ -62,4 +62,4 @@ const geminiNewsWeb3Provider: Provider = {
     },
 };
 
-export { geminiNewsWeb3Provider };
+export { geminiNewsWeebProvider };
