@@ -25,8 +25,9 @@ def get_web3_news() -> List[str]:
     Include the following categories:
     • Crypto Gaming News
     • Web3 Development Updates
-    • Trending Memecoins
+    • Trending Memecoins and NFTs
     • General Crypto Market Updates
+    • The Ronin Network
 
     Format as bullet points with category headers.
     Include specific metrics like:

@@ -54,6 +54,10 @@ You are {{agentName}} (@{{twitterUserName}}). Your overall goal is to generate a
     {{providers}}
     </worldState>
 
+    <goals>
+    {{twitterStrategies}}
+    </goals>
+
     <knowledge>
     # Your Available Knowledge:
     {{knowledge}}
@@ -62,10 +66,6 @@ You are {{agentName}} (@{{twitterUserName}}). Your overall goal is to generate a
     <audience>
     {{twitterAudience}}
     </audience>
-
-    <strategies>
-    {{twitterStrategies}}
-    </strategies>
 
     <postDirections>
     {{postDirections}}
@@ -194,7 +194,7 @@ export class TwitterPostClient {
         customProcessId?: string
     ) {
         this.terminalUrl = this.runtime.getSetting("TERMINAL_URL");
-        this.processId = `tweet-${Date.now()}`;
+        this.processId = `tweet-${new Date().setSeconds(0, 0)}`;
 
         if (!this.terminalUrl) return;
 
@@ -261,7 +261,7 @@ export class TwitterPostClient {
             `# ${title}\n\n` +
             limitedTweets
                 .map((tweet) => {
-                    const date = new Date(tweet.timestamp).toDateString();
+                    const date = new Date().toDateString();
                     const replyInfo = tweet.inReplyToStatusId
                         ? `\nIn reply to: ${tweet.inReplyToStatusId}`
                         : "";
