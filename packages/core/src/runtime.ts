@@ -1137,6 +1137,22 @@ Text: ${attachment.text}
                 formattedAttachments && formattedAttachments.length > 0
                     ? addHeader("# Attachments", formattedAttachments)
                     : "",
+            twitterAudience:
+                    this.character?.twitterAudience &&
+                    this.character?.twitterAudience.length > 0
+                        ? addHeader(
+                              "# Twitter Audience",
+                              this.character.twitterAudience.join("\n")
+                          )
+                        : "",
+                twitterStrategies:
+                    this.character?.twitterStrategies &&
+                    this.character?.twitterStrategies.length > 0
+                        ? addHeader(
+                              "# Twitter Strategies",
+                              this.character.twitterStrategies.join("\n")
+                          )
+                        : "",
             ...additionalKeys,
         } as State;
 

@@ -755,7 +755,6 @@ export type Character = {
         slack?: {
             shouldIgnoreBotMessages?: boolean;
             shouldIgnoreDirectMessages?: boolean;
-
         };
     };
 
@@ -777,7 +776,9 @@ export type Character = {
     /** Optional NFT prompt */
     nft?: {
         prompt: string;
-    }
+    };
+    twitterAudience?: string[];
+    twitterStrategies?: string[];
 };
 
 /**
