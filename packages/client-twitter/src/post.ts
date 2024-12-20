@@ -84,55 +84,41 @@ You are {{agentName}} (@{{twitterUserName}}). Your overall goal is to generate a
     </homeTimeline>
 
     <task>
-    # Generating Tweet as {{agentName}} (@{{twitterUserName}})
+        # Generating Tweet as {agentName} (@{twitterUserName})
 
-    Use <thinking></thinking> tags for private reasoning. Do not include the reasoning steps in the final output.
+        Think through these steps in <thinking> tags:
 
-    Follow this structured reasoning process:
+        0. NOVELTY ASSESSMENT
+        - Carefully review your <recentPosts> to identify common and repeating goals, patterns or themes.
+        - Write out a list of the most recent topics, phrases, and words you've used in your recent posts (be specific).
+        - Keep this list in mind as you generate your next post.
 
-    <thinking>
-    STEP 0: PERSONA & CONSTRAINT REVIEW
-    - Summarize your persona’s key attributes, voice style, constraints, and what you must not do.
-    - Confirm date/time reference if needed.
-    - Confirm your tweet must be one sentence, fresh, and follow content/style rules.
+        1. CHOOSING A GOAL
+        - Review details in <bio> <currentState> to understand who you are, what you are feeling, and what you want to achieve.
+        - Review details <homeTimeline> <worldState< to understand what's going on around you and what people are talking about
+        - Choose ONE goal from <goals> to communicate with your <audience> based on the above.
 
-    STEP 1: RECENT POST ANALYSIS (NOVELTY ASSESSMENT)
-    - Review the recent posts provided.
-    - List common topics, patterns, and phrases that appear repeatedly in the recent posts (be specific).
-    - Identify which structures, angles, and words to avoid repeating now.
-    - Confirm what new or underutilized angle you can introduce.
+        2. INSPIRATION
+        - What in the current situation catches your attention most?
+        - How does this align with your character's perspective?
+        - Check: Is this something new and interesting to share?
 
-    STEP 2: CURRENT CONTEXT & INSPIRATION
-    - Identify a currently relevant or timely topic from your knowledge or worldState that fits your persona.
-    - Consider how to apply your persona’s unique perspective to that topic.
-    - Check for novelty: is this distinctly different from recent posts?
+        3. AUDIENCE CONNECTION
+        - Who would care most about this observation?
+        - What format would hit hardest with them?
+        - Check: Have you used this angle recently?
 
-    STEP 3: AUDIENCE ALIGNMENT
-    - Identify who in your audience would find this topic compelling.
-    - Decide the emotional or intellectual hook that will engage them.
-    - Confirm that the angle is fresh and not overused recently.
+        4. AUTHENTICITY
+        - Does this sound like you? Review <bio> and consider <postExamples>.
+        - Does it follow your style rules? Review <postDirections> and <bio>.
+        - Check: Is it distinct from your recent posts? Review <recentPosts> and your thinking from STEP 0.
 
-    STEP 4: STRATEGY & DELIVERY
-    - Pick the strategy (educate, entertain, inform, inspire, etc.) that best fits this moment and your persona.
-    - Outline the one-sentence structure: what is the hook, what is the claim, and why it matters?
-    - Check for style: ensure brevity, wit, and alignment with persona’s “voice characteristics” and “project stance.”
-    - Make sure no forbidden topics or tones appear, and that it remains distinct from recent posts.
-
-    STEP 5: AUTHENTICITY & QUALITY CONTROL
-    - Read the draft sentence aloud (in your mind). Does it sound like your persona?
-    - Confirm it follows all Content Rules, Voice Elements, and Expression Style guidelines.
-    - Confirm it respects the date/time if referenced.
-    - Double-check that you haven’t repeated any recent sentence structures or phrasing.
-
-    STEP 6: FINAL VERIFICATION
-    - Ensure the tweet is fresh, authentic, and impactful.
-    - No apologies, no breaking persona, no contradiction of stated constraints.
-    </thinking>
-
-    Based on the reasoning above, produce one final tweet in <tweet></tweet> tags.
-    Use an entirely new angle distinct from recent posts.
-    Ensure perfect alignment with all persona rules.
-    </task>
+        Based on your thinking, write one impactful tweet in <tweet> tags.
+        REMEMBER:
+        - Keep it fresh - no repeating recent any of the sentence structures, wording patterns, or topics from your recent posts.
+        - Every word counts - don't be drawn out and wordy. When in doubt, keep it short, simple, and clear.
+        - Check: If you mention facts, do they come from <worldState> or <homeTimeline>? (never use them from <postExamples>)
+        </task>
     `;
 
 export const twitterActionTemplate =
@@ -203,7 +189,7 @@ export class TwitterPostClient {
     private processId: string;
 
     private async streamToTerminal(
-        type: "ACTION" | "THOUGHT" | "ERROR" | "PLAN_MODIFICATION",
+        type: "ACTION" | "THOUGHT",
         content: any,
         customProcessId?: string
     ) {
