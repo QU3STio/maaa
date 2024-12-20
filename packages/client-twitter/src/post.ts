@@ -454,8 +454,12 @@ export class TwitterPostClient {
             const topics = this.runtime.character.topics.join(", ");
 
             const homeTimeline = (await this.client.getCachedTimeline()) || [];
-            const recentPosts =
-                (await this.client.getCachedDryRunTweets()) || [];
+            const recentPosts = [
+                ...(await this.client.getCachedDryRunTweets()),
+                ...(await this.client.getCachedPostedTweets()),
+            ]
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 10);
 
             const formattedRecentPosts = await this.formatTweets(
                 recentPosts,
@@ -554,29 +558,29 @@ export class TwitterPostClient {
             // Final cleaning
             const finalContent = removeQuotes(fixNewLines(content));
 
-            // await this.streamToTerminal(
-            //     "ACTION",
-            //     {
-            //         phase: "Posting Tweet...",
-            //         context: finalContent,
-            //     },
-            //     this.processId
-            // );
+            await this.streamToTerminal(
+                "ACTION",
+                {
+                    phase: "Posting Tweet...",
+                    context: finalContent,
+                },
+                this.processId
+            );
 
-            // if (thinkingContent) {
-            //     await this.streamToTerminal(
-            //         "THOUGHT",
-            //         {
-            //             phase: "Thought process...",
-            //             context: thinkingContent,
-            //         },
-            //         this.processId
-            //     );
-            // }
+            if (thinkingContent) {
+                await this.streamToTerminal(
+                    "THOUGHT",
+                    {
+                        phase: "Thought process...",
+                        context: thinkingContent,
+                    },
+                    this.processId
+                );
+            }
 
             if (this.runtime.getSetting("TWITTER_DRY_RUN") === "true") {
                 const existingDryRuns =
-                    (await this.client.getCachedDryRunTweets()) || [];
+                    await this.client.getCachedDryRunTweets();
                 const dryRunTweet = {
                     id: `dry-run-${Date.now()}`,
                     name: this.client.profile.screenName,
@@ -595,10 +599,10 @@ export class TwitterPostClient {
                     videos: [],
                 } as Tweet;
 
-                await this.runtime.cacheManager.set(
-                    `twitter/${this.client.profile.username}/dryRunTweets`,
-                    [...existingDryRuns, dryRunTweet]
-                );
+                await this.client.cacheDryRunTweet([
+                    ...existingDryRuns,
+                    dryRunTweet,
+                ]);
 
                 await this.runtime.cacheManager.set(
                     `twitter/${this.client.profile.username}/lastPost`,
@@ -653,6 +657,14 @@ export class TwitterPostClient {
                     urls: [],
                     videos: [],
                 } as Tweet;
+
+                // Cache the posted tweet
+                const existingPostedTweets =
+                    await this.client.getCachedPostedTweets();
+                await this.client.cachePostedTweet([
+                    ...existingPostedTweets,
+                    tweet,
+                ]);
 
                 await this.runtime.cacheManager.set(
                     `twitter/${this.client.profile.username}/lastPost`,
