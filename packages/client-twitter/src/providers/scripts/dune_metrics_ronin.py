@@ -355,13 +355,11 @@ def get_llm_synthesis(metrics: List[str]) -> List[str]:
                     insight = f"[[Current Ronin Network State] {line}"
                     insights.append(insight)
 
-            insights.extend(section_insights)
-
         except Exception as e:
             print(f"Error processing {section} section: {str(e)}")
             continue
 
-    return all_insights
+    return insights
 
 def main(client: DuneClient, model: genai.GenerativeModel):
     # Get Dune analytics insights

@@ -36,7 +36,7 @@ import { twitterMessageHandlerTemplate } from "./interactions.ts";
 // Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than {{maxTweetLength}}. No emojis. Use \\n\\n (double spaces) between statements.`;
 
 const twitterPostTemplate = `
-You are {{agentName}} (@{{twitterUserName}}). Your overall goal is to generate an engaging twitter post for your audience.
+You are {{agentName}} (@{{twitterUserName}})
 
     <bio>
     # About You
