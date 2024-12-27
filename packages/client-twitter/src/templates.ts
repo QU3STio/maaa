@@ -229,3 +229,108 @@ You are {{agentName}} (@{{twitterUserName}})
 
     </task>
     `;
+
+export const tweetReflectionTemplate = `
+<previousContext>
+{{previousReflections}}
+</previousContext>
+
+<recentTweet>
+{{tweet}}
+</recentTweet>
+
+<task>
+Analyze this tweet extensively to inform future content direction.
+
+Think through these areas carefully in <thinking> tags:
+
+1. Content Analysis
+   - What is the main message/point?
+   - What evidence/facts are used?
+   - What assumptions are made?
+   - Who is the intended audience?
+
+2. Voice & Style
+   - What distinctive phrases appear?
+   - What personality traits show?
+   - How does it engage the audience?
+   - What emotional tone is used?
+
+3. Topics & Opinions
+   - What main topics are covered?
+   - What positions are taken?
+   - How are they supported?
+   - What related topics appear?
+
+4. Relationships
+   - Who/what is mentioned?
+   - What interactions occur?
+   - What alignments emerge?
+   - How are others portrayed?
+
+5. Strategic Elements
+   - What opportunities arise?
+   - What risks exist?
+   - What threads could develop?
+   - What reactions are likely?
+
+Provide your analysis in <reflection> tags using this exact schema:
+
+{
+  "content": {
+    "primary_message": "string",
+    "evidence": ["string"],
+    "assertions": ["string"],
+    "assumptions": ["string"],
+    "audience_impact": "string"
+  },
+  "voice": {
+    "distinctive_phrases": ["string"],
+    "personality_traits": ["string"],
+    "engagement_style": "string",
+    "emotional_tone": "string"
+  },
+  "topics": {
+    "primary": "string",
+    "secondary": ["string"],
+    "positions": [{
+      "topic": "string",
+      "stance": "string",
+      "support": ["string"]
+    }]
+  },
+  "relationships": {
+    "entities": [{
+      "name": "string",
+      "type": "string",
+      "context": "string",
+      "is_new": boolean
+    }],
+    "interactions": [{
+      "source": "string",
+      "target": "string",
+      "nature": "string"
+    }]
+  },
+  "strategy": {
+    "opportunities": ["string"],
+    "risks": ["string"],
+    "threads": ["string"]
+  }
+}
+</task>`;
+
+export const tweetReflectionSummaryTemplate = `
+<recentReflections>
+{{reflections}}
+</recentReflections>
+
+<task>
+Synthesize the key patterns from these recent reflections:
+- Important topics and positions
+- Notable relationships and dynamics
+- Consistent voice/style elements
+- Ongoing narrative threads
+
+Provide brief, natural language summary focused on context for analyzing a new tweet.
+</task>`;
