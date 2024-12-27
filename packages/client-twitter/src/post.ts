@@ -84,7 +84,7 @@ You are {{agentName}} (@{{twitterUserName}})
     </homeTimeline>
 
     <task>
-    # Generating Tweet as {agentName} (@{twitterUserName})
+    # Generating Tweet as {{agentName}} (@{{twitterUserName}})
 
     Think through these steps in <thinking> tags:
 
@@ -108,7 +108,7 @@ You are {{agentName}} (@{{twitterUserName}})
     - Verify you haven't used this angle or phrasing recently.
 
     4. AUTHENTICITY
-    - Check <bio> and <postDirections> for style. Must be lowercase, dry, smug, and data-driven.
+    - Check <bio> and <postDirections> for style.
     - Check your tone against recent posts to ensure uniqueness.
 
     5. FACT VERIFICATION
