@@ -13,8 +13,13 @@ import { ClientBase } from "./base.ts";
 import { generateTweetActions } from "@ai16z/eliza";
 import { IImageDescriptionService, ServiceType } from "@ai16z/eliza";
 import { buildConversationThread } from "./utils.ts";
-import { twitterPostTemplate, twitterMessageHandlerTemplate } from "./templates.ts";
-
+import {
+    twitterPostTemplate,
+    twitterMessageHandlerTemplate,
+    twitterHLPTemplate,
+    twitterLLPTemplate,
+    twitterReflectionTemplate,
+} from "./templates.ts";
 
 const MAX_TWEET_LENGTH = 240;
 
@@ -363,22 +368,99 @@ export class TwitterPostClient {
                 }
             );
 
-            const context = composeContext({
+            // changing approach from tweetPostTemplate to...
+            // 1. tweetReflectionTemplate
+            // 2. tweetLLPTemplate
+            // 3. tweetHLPTemplate
+            const reflectionContext = composeContext({
                 state,
-                template:
-                    this.runtime.character.templates?.twitterPostTemplate ||
-                    twitterPostTemplate,
+                template: twitterReflectionTemplate,
             });
 
-            elizaLogger.info("generate post prompt:\n" + context);
+            elizaLogger.info(
+                "generated reflection prompt:\n" + reflectionContext
+            );
 
-            const newTweetContent = await generateText({
+            const reflectionContent = await generateText({
                 runtime: this.runtime,
-                context,
+                context: reflectionContext,
                 modelClass: ModelClass.MEDIUM,
             });
 
-            elizaLogger.info("generate post response:\n" + newTweetContent);
+            elizaLogger.info(
+                "generated reflection response:\n" + reflectionContent
+            );
+
+            const postReflectionState = await this.runtime.composeState(
+                {
+                    userId: this.runtime.agentId,
+                    roomId: roomId,
+                    agentId: this.runtime.agentId,
+                    content: {
+                        text: topics || "",
+                        action: "TWEET",
+                    },
+                },
+                {
+                    twitterUserName: this.client.profile.username,
+                    twitterAudience: this.runtime.character.twitterAudience,
+                    twitterStrategies: this.runtime.character.twitterStrategies,
+                    recentTwitterPosts: formattedRecentPosts,
+                    timeline: formattedHomeTimeline,
+                    reflections: reflectionContent,
+                }
+            );
+
+            const hlpContext = composeContext({
+                state: postReflectionState,
+                template: twitterHLPTemplate,
+            });
+
+            elizaLogger.info("generated hlp prompt:\n" + hlpContext);
+
+            const hlpContent = await generateText({
+                runtime: this.runtime,
+                context: hlpContext,
+                modelClass: ModelClass.MEDIUM,
+            });
+
+            elizaLogger.info("generated hlp response:\n" + hlpContent);
+
+            const postHLPState = await this.runtime.composeState(
+                {
+                    userId: this.runtime.agentId,
+                    roomId: roomId,
+                    agentId: this.runtime.agentId,
+                    content: {
+                        text: topics || "",
+                        action: "TWEET",
+                    },
+                },
+                {
+                    twitterUserName: this.client.profile.username,
+                    twitterAudience: this.runtime.character.twitterAudience,
+                    twitterStrategies: this.runtime.character.twitterStrategies,
+                    recentTwitterPosts: formattedRecentPosts,
+                    timeline: formattedHomeTimeline,
+                    reflections: reflectionContent,
+                    hlpPlan: hlpContent,
+                }
+            );
+
+            const llpContext = composeContext({
+                state: postHLPState,
+                template: twitterLLPTemplate,
+            });
+
+            elizaLogger.info("generated llp prompt:\n" + llpContext);
+
+            const newTweetContent = await generateText({
+                runtime: this.runtime,
+                context: llpContext,
+                modelClass: ModelClass.MEDIUM,
+            });
+
+            elizaLogger.info("generated llp response:\n" + newTweetContent);
 
             // Extract content using the new helper method
             const { tweetContent, thinkingContent } =

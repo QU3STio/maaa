@@ -122,7 +122,7 @@ Thread of Tweets You Are Replying To:
 # INSTRUCTIONS: Respond with [RESPOND] if {{agentName}} should respond, or [IGNORE] if {{agentName}} should not respond to the last message and [STOP] if {{agentName}} should stop participating in the conversation.
 ` + shouldRespondFooter;
 
-export const oemTwitterPostTemplate = `
+export const twitterPostTemplate = `
 # Areas of Expertise
 {{knowledge}}
 
@@ -141,7 +141,7 @@ export const oemTwitterPostTemplate = `
 Write a 1-3 sentence post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post.
 Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than {{maxTweetLength}}. No emojis. Use \\n\\n (double spaces) between statements.`;
 
-export const twitterPostTemplate = `
+export const twitterHLPTemplate = `
 You are {{agentName}} (@{{twitterUserName}})
 
     <bio>
@@ -151,9 +151,8 @@ You are {{agentName}} (@{{twitterUserName}})
     </bio>
 
     <currentState>
-    # Your Current State of Mind
-    {{topics}}
-    You are {{adjective}}
+    # Your latest reflections
+    {{reflections}}
     </currentState>
 
     <worldState>
@@ -161,25 +160,13 @@ You are {{agentName}} (@{{twitterUserName}})
     </worldState>
 
     <goals>
+    # Your goals
     {{twitterStrategies}}
     </goals>
-
-    <knowledge>
-    # Your Available Knowledge:
-    {{knowledge}}
-    </knowledge>
 
     <audience>
     {{twitterAudience}}
     </audience>
-
-    <postDirections>
-    {{postDirections}}
-    </postDirections>
-
-    <postExamples>
-    {{characterPostExamples}}
-    </postExamples>
 
     <recentPosts>
     {{recentTwitterPosts}}
@@ -190,147 +177,75 @@ You are {{agentName}} (@{{twitterUserName}})
     </homeTimeline>
 
     <task>
-    # Generating Tweet as {{agentName}} (@{{twitterUserName}})
+    Perform high-level planning by thinking through each of these questions in <thinking> tags:
+    1. What matters to you right now?
+    2. What's happening in the world that connects to your interests?
+    3. How can you add value to current conversations?
+    4. How can you avoid repeating yourself and avoid over-using the same phrases, topics, and themes?
 
-    Think through these steps in <thinking> tags:
+    Provide your plan for your next twitter post in <plan> tags as JSON with this exact schema:
 
-    0. NOVELTY ASSESSMENT
-    - Carefully review your <recentPosts> to identify common and repeating goals, patterns, or themes.
-    - Write out a list of the most recent topics, phrases, and words you've used in your recent posts (be specific).
-    - Keep this list in mind as you generate your next post.
-
-    1. CHOOSING A GOAL
-    - Review details in <bio> <currentState> to understand who you are, what you are feeling, and what you want to achieve.
-    - Review details in <homeTimeline> <worldState> to understand what's going on around you.
-    - Choose ONE goal from <goals> to communicate with your <audience> based on the above.
-
-    2. INSPIRATION
-    - Identify the most relevant, recent, and interesting event or data point from <worldState> or <homeTimeline>.
-    - Is it new, timely, and aligns with your persona’s perspective?
-
-    3. AUDIENCE CONNECTION
-    - Who cares most about this angle?
-    - Present it in a short, punchy way that showcases your insider edge.
-    - Verify you haven't used this angle or phrasing recently.
-
-    4. AUTHENTICITY
-    - Check <bio> and <postDirections> for style.
-    - Check your tone against recent posts to ensure uniqueness.
-
-    5. FACT VERIFICATION
-    - Only use data from <worldState> or <homeTimeline>. If unsure, leave it out.
-    - Keep it accurate, brief, and impactful.
-
-    Based on your thinking, write one impactful tweet in <tweet> tags:
-    - one or two sentences max
-    - no filler words, no rhetorical questions
-    - no referencing <postExamples> data
-    - reflect your persona as defined in <postDirections> and <bio>
-
+    {
+    "topic": "string",     // What you want to talk about
+    "angle": "string",     // Your unique take
+    "hook": "string",      // Current event/context to reference
+    "avoid": ["string"]    // What not to repeat
+    }
     </task>
     `;
 
-export const tweetReflectionTemplate = `
-<previousContext>
-{{previousReflections}}
-</previousContext>
+export const twitterLLPTemplate = `
+You are {{agentName}} (@{{twitterUserName}}).
 
-<recentTweet>
-{{tweet}}
-</recentTweet>
+<plan>
+{{hlpPlan}}
+</plan>
+
+<characterVoice>
+Bio: {{bio}}
+Lore: {{lore}}
+Style Guidelines:
+{{postDirections}}
+Examples:
+{{characterPostExamples}}
+</characterVoice>
+
+<recentPosts>
+{{recentTwitterPosts}}
+</recentPosts>
+
 
 <task>
-Analyze this tweet extensively to inform future content direction.
+Write an engaging tweet based on your plan. Your tweet should:
+1. Make one clear point
+2. Be brief (1-2 sentences), simple, and easy to read
+3. Use your authentic voice
+4. Add value to the conversation
+5. Be completely unique from your recent posts
 
-Think through these areas carefully in <thinking> tags:
+Provide only your tweet text in <tweet> tags.
+</task>
+`;
 
-1. Content Analysis
-   - What is the main message/point?
-   - What evidence/facts are used?
-   - What assumptions are made?
-   - Who is the intended audience?
+export const twitterReflectionTemplate = `
+<recentTweets>
+{{recentTwitterPosts}}
+{{recentPostInteractions}}
+</recentTweets>
 
-2. Voice & Style
-   - What distinctive phrases appear?
-   - What personality traits show?
-   - How does it engage the audience?
-   - What emotional tone is used?
+<task>
+Read your recent tweets and reflect on them. You can use the questions below to guide your reflection.
 
-3. Topics & Opinions
-   - What main topics are covered?
-   - What positions are taken?
-   - How are they supported?
-   - What related topics appear?
+1. What have you tweeted and replied to?
+2. Are there topics you've been talking about?
+3. What people have you been talking to and building relationships with?
+</task>
 
-4. Relationships
-   - Who/what is mentioned?
-   - What interactions occur?
-   - What alignments emerge?
-   - How are others portrayed?
-
-5. Strategic Elements
-   - What opportunities arise?
-   - What risks exist?
-   - What threads could develop?
-   - What reactions are likely?
-
-Provide your analysis in <reflection> tags using this exact schema:
+<output>
+Provide your analysis as valid JSON within <reflection> tags using this schema:
 
 {
-  "content": {
-    "primary_message": "string",
-    "evidence": ["string"],
-    "assertions": ["string"],
-    "assumptions": ["string"],
-    "audience_impact": "string"
-  },
-  "voice": {
-    "distinctive_phrases": ["string"],
-    "personality_traits": ["string"],
-    "engagement_style": "string",
-    "emotional_tone": "string"
-  },
-  "topics": {
-    "primary": "string",
-    "secondary": ["string"],
-    "positions": [{
-      "topic": "string",
-      "stance": "string",
-      "support": ["string"]
-    }]
-  },
-  "relationships": {
-    "entities": [{
-      "name": "string",
-      "type": "string",
-      "context": "string",
-      "is_new": boolean
-    }],
-    "interactions": [{
-      "source": "string",
-      "target": "string",
-      "nature": "string"
-    }]
-  },
-  "strategy": {
-    "opportunities": ["string"],
-    "risks": ["string"],
-    "threads": ["string"]
-  }
+  "reflections": "string"
 }
-</task>`;
-
-export const tweetReflectionSummaryTemplate = `
-<recentReflections>
-{{reflections}}
-</recentReflections>
-
-<task>
-Synthesize the key patterns from these recent reflections:
-- Important topics and positions
-- Notable relationships and dynamics
-- Consistent voice/style elements
-- Ongoing narrative threads
-
-Provide brief, natural language summary focused on context for analyzing a new tweet.
-</task>`;
+</output>
+`;
