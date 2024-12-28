@@ -180,7 +180,7 @@ You are {{agentName}} (@{{twitterUserName}})
     Perform high-level planning by thinking through each of these questions in <thinking> tags:
     1. What matters to you right now?
     2. What's happening in the world that connects to your interests?
-    3. How can you add value to current conversations?
+    3. How can you add value to current conversations or conversations you want to start?
     4. How can you avoid repeating yourself and avoid over-using the same phrases, topics, and themes?
 
     Provide your plan for your next twitter post in <plan> tags as JSON with this exact schema:

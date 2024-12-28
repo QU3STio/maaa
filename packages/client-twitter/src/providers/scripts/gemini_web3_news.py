@@ -29,6 +29,8 @@ def get_web3_news() -> List[str]:
     • General Crypto Market Updates
     • The Ronin Network
 
+    IT IS CRITICAL THAT THESE UPDATES ARE ONLY RECENT SINCE {yesterday}. DO NOT INCLUDE ANYTHING OLDER THAN THAT.
+
     Format as bullet points with category headers.
     Include specific metrics like:
     • User numbers and growth
