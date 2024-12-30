@@ -5,28 +5,30 @@ import { MemoryManager } from "@ai16z/eliza";
 
 /**
  * Executes a Python script and returns its output as an array of strings
- * @param pythonScriptPath - Path to the Python script to execute
+ * @param scriptPath - Path to the Python script to execute
+ * @param args - Arguments to pass to the Python script
  * @returns Promise<string[]> Array of output lines from the Python script
  */
 export const executePythonScript = async (
-    pythonScriptPath: string
+    scriptPath: string,
+    args: string[] = []
 ): Promise<string[]> => {
     return new Promise((resolve, reject) => {
-        elizaLogger.info(`Executing Python script: ${pythonScriptPath}`);
-        const python = spawn(process.env.PYTHON_PATH, [pythonScriptPath]);
+        elizaLogger.info(`Executing Python script: ${scriptPath}`);
+        const process = spawn("python", [scriptPath, ...args]);
 
         let output = "";
         let error = "";
 
-        python.stdout.on("data", (data) => {
+        process.stdout.on("data", (data) => {
             output += data.toString();
         });
 
-        python.stderr.on("data", (data) => {
+        process.stderr.on("data", (data) => {
             error += data.toString();
         });
 
-        python.on("close", (code) => {
+        process.on("close", (code) => {
             if (code !== 0) {
                 elizaLogger.error(`Python script error: ${error}`);
                 reject(

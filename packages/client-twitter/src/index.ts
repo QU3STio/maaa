@@ -7,6 +7,7 @@ import { ClientBase } from "./base.ts";
 import { duneMetricsRoninProvider } from "./providers/duneMetricsRonin.ts";
 import { geminiNewsWeb3Provider } from "./providers/geminiNewsCrypto.ts";
 import { geminiNewsWeebProvider } from "./providers/geminiNewsWeeb.ts";
+import { geminiTopicSearchProvider } from "./providers/geminiTopicSearch.ts";
 
 class TwitterManager {
     client: ClientBase;
@@ -23,6 +24,12 @@ class TwitterManager {
         }
         if (runtime.character.name === "Rin Tamanuki") {
             runtime.providers.push(geminiNewsWeebProvider);
+        }
+        if (
+            runtime.character.name !== "Terminator Tanuki" &&
+            runtime.character.name !== "Rin Tamanuki"
+        ) {
+            runtime.providers.push(geminiTopicSearchProvider);
         }
 
         if (enableSearch) {

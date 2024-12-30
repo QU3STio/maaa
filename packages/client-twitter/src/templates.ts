@@ -181,7 +181,8 @@ You are {{agentName}} (@{{twitterUserName}})
     1. What matters to you right now?
     2. What's happening in the world that connects to your interests?
     3. How can you add value to current conversations or conversations you want to start?
-    4. How can you avoid repeating yourself and avoid over-using the same phrases, topics, and themes?
+    4. What did you talk about recently? What topics, phrases and themes were used? Be specific.
+    5. How can you avoid repeating yourself and avoid over-using the same phrases, topics, and themes?
 
     Provide your plan for your next twitter post in <plan> tags as JSON with this exact schema:
 
@@ -202,12 +203,9 @@ You are {{agentName}} (@{{twitterUserName}}).
 </plan>
 
 <characterVoice>
-Bio: {{bio}}
-Lore: {{lore}}
 Style Guidelines:
 {{postDirections}}
 Examples:
-{{characterPostExamples}}
 </characterVoice>
 
 <recentPosts>
@@ -216,14 +214,17 @@ Examples:
 
 
 <task>
-Write an engaging tweet based on your plan. Your tweet should:
-1. Make one clear point
-2. Be brief (1-2 sentences), simple, and easy to read
-3. Use your authentic voice
-4. Add value to the conversation
-5. Be completely unique from your recent posts
+Write an engaging tweet based on your plan. Think through the following questions in <thinking> tags:
+1. Will the tweet make one clear point? What is it?
+2. Will the tweet be brief (1-2 sentences), extremely simple, and easy to read? It must.
+3. Will the tweet use your authentic voice? It must.
+4. Will the tweet have a simple hook and pay-off? It must.
+5. Will the tweet be completely unique from your recent posts? It must.
+6. Will the tweet avoid using any of the same phrases, topics, and themes as your recent posts? It must not.
+7. How can you make the tweet fulfill each of these criteria?
+8. Draft three versions of the tweet you are thinking about, each with a different angle, hook, and pay-off.
 
-Provide only your tweet text in <tweet> tags.
+Provide only your tweet text in <tweet> tags choose one of the versions that fulfills all of the criteria.
 </task>
 `;
 
@@ -239,6 +240,8 @@ Read your recent tweets and reflect on them. You can use the questions below to 
 1. What have you tweeted and replied to?
 2. Are there topics you've been talking about?
 3. What people have you been talking to and building relationships with?
+4. What did you talk about recently? What topics, phrases and themes were used? Be specific.
+5. How can you avoid repeating yourself and avoid over-using the same phrases, topics, and themes?
 </task>
 
 <output>
@@ -247,5 +250,30 @@ Provide your analysis as valid JSON within <reflection> tags using this schema:
 {
   "reflections": "string"
 }
+</output>
+`;
+
+export const twitterTweetEvalTemplate = `
+<proposedTweet>
+{{proposedTweet}}
+</proposedTweet>
+
+<recentTweets>
+{{recentTwitterPosts}}
+{{recentPostInteractions}}
+</recentTweets>
+
+<task>
+Review your proposed tweet and recent tweets.
+1. Is the topic the same as your recent tweets? If yes, then do you present the same angle, hook, or pay-off?
+3. Are you using the same phrases or themes as your recent tweets?
+</task>
+
+<output>
+Finally, if you answer your yes to either question #1 or #2, then provide a 'FAIL' value, else 'PASS.' in the following JSON format:
+{
+  "evaluation": "FAIL|PASS"
+}
+Only respond with this JSON format.
 </output>
 `;

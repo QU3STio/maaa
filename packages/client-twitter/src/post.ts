@@ -19,6 +19,7 @@ import {
     twitterHLPTemplate,
     twitterLLPTemplate,
     twitterReflectionTemplate,
+    twitterTweetEvalTemplate,
 } from "./templates.ts";
 
 const MAX_TWEET_LENGTH = 240;
@@ -462,11 +463,10 @@ export class TwitterPostClient {
 
             elizaLogger.info("generated llp response:\n" + newTweetContent);
 
-            // Extract content using the new helper method
             const { tweetContent, thinkingContent } =
                 this.extractTweetContent(newTweetContent);
 
-            // // Fall back to traditional parsing if no tweet content found
+            // Fall back to traditional parsing if no tweet content found
             const cleanedContent = tweetContent
                 .replace(/^\s*{?\s*"text":\s*"|"\s*}?\s*$/g, "")
                 .replace(/^['"](.*)['"]$/g, "$1")
@@ -512,6 +512,45 @@ export class TwitterPostClient {
 
             // Final cleaning
             const finalContent = removeQuotes(fixNewLines(content));
+
+            const postLLPState = await this.runtime.composeState(
+                {
+                    userId: this.runtime.agentId,
+                    roomId: roomId,
+                    agentId: this.runtime.agentId,
+                    content: {
+                        text: topics || "",
+                        action: "TWEET",
+                    },
+                },
+                {
+                    twitterUserName: this.client.profile.username,
+                    twitterAudience: this.runtime.character.twitterAudience,
+                    twitterStrategies: this.runtime.character.twitterStrategies,
+                    recentTwitterPosts: formattedRecentPosts,
+                    timeline: formattedHomeTimeline,
+                    reflections: reflectionContent,
+                    hlpPlan: hlpContent,
+                    proposedTweet: finalContent,
+                }
+            );
+
+            const evalContext = composeContext({
+                state: postLLPState,
+                template: twitterTweetEvalTemplate,
+            });
+
+            const evalContent = await generateText({
+                runtime: this.runtime,
+                context: evalContext,
+                modelClass: ModelClass.MEDIUM,
+            });
+
+            // Evaluate the tweet for variety - else kill it
+            if (JSON.parse(evalContent).evaluation === "FAIL") {
+                elizaLogger.info("Tweet evaluation failed, stopping");
+                return;
+            }
 
             await this.streamToTerminal(
                 "ACTION",
