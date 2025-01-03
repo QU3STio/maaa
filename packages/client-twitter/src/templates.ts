@@ -212,11 +212,14 @@ Examples:
 {{recentTwitterPosts}}
 </recentPosts>
 
+<audience>
+{{twitterAudience}}
+</audience>
 
 <task>
 Write an engaging tweet based on your plan. Think through the following questions in <thinking> tags:
 1. Will the tweet make one clear point? What is it?
-2. Will the tweet be brief (1-2 sentences), extremely simple, and easy to read? It must.
+2. Will the tweet be brief (1-2 sentences), extremely simple, and easy to read? It must to you audience.
 3. Will the tweet use your authentic voice? It must.
 4. Will the tweet have a simple hook and pay-off? It must.
 5. Will the tweet be completely unique from your recent posts? It must.

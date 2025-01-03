@@ -6,6 +6,8 @@ import random
 
 import time
 import pytz
+import sys
+import argparse
 from datetime import datetime, timedelta, timezone
 
 from dune_client.client import DuneClient
