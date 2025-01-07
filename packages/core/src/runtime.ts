@@ -407,22 +407,27 @@ export class AgentRuntime implements IAgentRuntime {
     }
 
     async stop() {
-      elizaLogger.debug('runtime::stop - character', this.character)
-      // stop services, they don't have a stop function
+        elizaLogger.debug("runtime::stop - character", this.character);
+        // stop services, they don't have a stop function
         // just initialize
 
-      // plugins
+        // plugins
         // have actions, providers, evaluators (no start/stop)
         // services (just initialized), clients
 
-      // client have a start
-      for(const cStr in this.clients) {
-        const c = this.clients[cStr]
-        elizaLogger.log('runtime::stop - requesting', cStr, 'client stop for', this.character.name)
-        c.stop()
-      }
-      // we don't need to unregister with directClient
-      // don't need to worry about knowledge
+        // client have a start
+        for (const cStr in this.clients) {
+            const c = this.clients[cStr];
+            elizaLogger.log(
+                "runtime::stop - requesting",
+                cStr,
+                "client stop for",
+                this.character.name
+            );
+            c.stop();
+        }
+        // we don't need to unregister with directClient
+        // don't need to worry about knowledge
     }
 
     /**
@@ -870,7 +875,7 @@ Text: ${attachment.text}
             const shuffledLore = [...this.character.lore].sort(
                 () => Math.random() - 0.5
             );
-            const selectedLore = shuffledLore.slice(0, 10);
+            const selectedLore = shuffledLore.slice(0, 3);
             lore = selectedLore.join("\n");
         }
 
@@ -880,7 +885,7 @@ Text: ${attachment.text}
                 const messageString = `${post}`;
                 return messageString;
             })
-            .slice(0, 50)
+            .slice(0, 3)
             .join("\n");
 
         const formattedCharacterMessageExamples = this.character.messageExamples
@@ -1138,21 +1143,21 @@ Text: ${attachment.text}
                     ? addHeader("# Attachments", formattedAttachments)
                     : "",
             twitterAudience:
-                    this.character?.twitterAudience &&
-                    this.character?.twitterAudience.length > 0
-                        ? addHeader(
-                              "# Twitter Audience",
-                              this.character.twitterAudience.join("\n")
-                          )
-                        : "",
-                twitterStrategies:
-                    this.character?.twitterStrategies &&
-                    this.character?.twitterStrategies.length > 0
-                        ? addHeader(
-                              "# Twitter Strategies",
-                              this.character.twitterStrategies.join("\n")
-                          )
-                        : "",
+                this.character?.twitterAudience &&
+                this.character?.twitterAudience.length > 0
+                    ? addHeader(
+                          "# Twitter Audience",
+                          this.character.twitterAudience.join("\n")
+                      )
+                    : "",
+            twitterStrategies:
+                this.character?.twitterStrategies &&
+                this.character?.twitterStrategies.length > 0
+                    ? addHeader(
+                          "# Twitter Strategies",
+                          this.character.twitterStrategies.join("\n")
+                      )
+                    : "",
             ...additionalKeys,
         } as State;
 
