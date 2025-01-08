@@ -767,4 +767,50 @@ export class ClientBase extends EventEmitter {
             return undefined;
         }
     }
+
+    async getCachedPostedTweets(): Promise<Tweet[]> {
+        return (
+            (await this.runtime.cacheManager.get<Tweet[]>(
+                `twitter/${this.profile.username}/postedTweets`
+            )) || []
+        );
+    }
+
+    async cachePostedTweet(tweets: Tweet[]) {
+        try {
+            const tweetsToCache = tweets
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 50);
+            await this.runtime.cacheManager.set(
+                `twitter/${this.profile.username}/postedTweets`,
+                tweetsToCache,
+                { expires: Date.now() + 24 * 60 * 60 * 1000 }
+            );
+        } catch (error) {
+            elizaLogger.error("Error caching posted tweets:", error);
+        }
+    }
+
+    async cacheDryRunTweet(tweets: Tweet[]) {
+        try {
+            const tweetsToCache = tweets
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 50);
+            await this.runtime.cacheManager.set(
+                `twitter/${this.profile.username}/dryRunTweets`,
+                tweetsToCache,
+                { expires: Date.now() + 24 * 60 * 60 * 1000 } // 24 hours
+            );
+        } catch (error) {
+            elizaLogger.error("Error caching dry run tweets:", error);
+        }
+    }
+
+    async getCachedDryRunTweets(): Promise<Tweet[]> {
+        return (
+            (await this.runtime.cacheManager.get<Tweet[]>(
+                `twitter/${this.profile.username}/dryRunTweets`
+            )) || []
+        );
+    }
 }
