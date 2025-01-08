@@ -9,6 +9,10 @@ import { TwitterInteractionClient } from "./interactions.ts";
 import { TwitterPostClient } from "./post.ts";
 import { TwitterSearchClient } from "./search.ts";
 import { TwitterSpaceClient } from "./spaces.ts";
+import { duneMetricsRoninProvider } from "./providers/duneMetricsRonin.ts";
+import { geminiNewsWeb3Provider } from "./providers/geminiNewsCrypto.ts";
+import { geminiNewsWeebProvider } from "./providers/geminiNewsWeeb.ts";
+import { geminiTopicSearchProvider } from "./providers/geminiTopicSearch.ts";
 
 /**
  * A manager that orchestrates all specialized Twitter logic:
@@ -31,6 +35,11 @@ class TwitterManager {
 
         // Posting logic
         this.post = new TwitterPostClient(this.client, runtime);
+
+        // TODO: Import providers via Character Sheet
+        if (runtime.character.name === "Terminator Tanuki") {
+            runtime.providers.push(duneMetricsRoninProvider);
+        }
 
         // Optional search logic (enabled if TWITTER_SEARCH_ENABLE is true)
         if (twitterConfig.TWITTER_SEARCH_ENABLE) {
